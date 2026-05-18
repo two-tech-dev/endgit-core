@@ -19,9 +19,9 @@ export class GithubController {
       const perPage = parseInt(req.query.per_page as string) || 30;
       const org = req.query.org as string | undefined;
 
-      const { repos, hasMore } = await githubService.getUserRepos(req.user!.id, page, perPage, org);
+      const { repos, hasMore, totalCount, totalEnabled, totalDisabled } = await githubService.getUserRepos(req.user!.id, page, perPage, org);
       
-      res.json({ success: true, data: repos, pagination: { hasMore, page, perPage } });
+      res.json({ success: true, data: repos, pagination: { hasMore, page, perPage, totalCount, totalEnabled, totalDisabled } });
     } catch (error: any) {
       console.error("GitHub repos error:", error);
       res.status(500).json({ success: false, error: error.message || "Failed to fetch repositories" });

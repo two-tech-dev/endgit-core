@@ -134,17 +134,32 @@ export class GithubService {
     if (!ghRes.ok) throw new Error("Failed to fetch from GitHub");
 
     let hasMore = false;
+    let totalCount = 0;
     const linkHeader = ghRes.headers.get("link");
     if (linkHeader && linkHeader.includes('rel="next"')) hasMore = true;
 
     const ghRepos = await ghRes.json() as any[];
+
+    if (linkHeader) {
+      const lastMatch = linkHeader.match(/[?&]page=(\d+)[^>]*>;\s*rel="last"/);
+      if (lastMatch) {
+        const lastPage = parseInt(lastMatch[1], 10);
+        totalCount = lastPage * perPage;
+      }
+    }
+
+    if (!hasMore) {
+      totalCount = (page - 1) * perPage + ghRepos.length;
+    } else if (totalCount === 0) {
+      totalCount = ghRepos.length;
+    }
 
     const existingPlugins = await prisma.plugin.findMany({
       where: { authorId: userId },
       select: { id: true, repoUrl: true, slug: true, status: true, name: true, webhookId: true }
     });
 
-    const repoUrlMap = new Map(existingPlugins.map(p => [p.repoUrl, p]));
+    const repoUrlMap = new Map(existingPlugins.map((p: any) => [p.repoUrl, p]));
 
     const repos = ghRepos.map((repo: any) => {
       const linked = repoUrlMap.get(repo.html_url);
@@ -165,7 +180,10 @@ export class GithubService {
       };
     });
 
-    return { repos, hasMore };
+    const totalEnabled = existingPlugins.filter((p: any) => p.webhookId).length;
+    const totalDisabled = totalCount - totalEnabled;
+
+    return { repos, hasMore, totalCount, totalEnabled, totalDisabled };
   }
 
   async enableCI(userId: string, repoData: any) {
