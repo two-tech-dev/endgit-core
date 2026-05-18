@@ -25,6 +25,7 @@ export class GithubController {
       const cacheKey = `${req.user!.id}:${page}:${perPage}:${org || ""}`;
       const cached = reposCache.get(cacheKey);
       if (cached && cached.expiresAt > Date.now()) {
+        res.set("Cache-Control", "private, max-age=30");
         return res.json(cached.data);
       }
 
@@ -33,6 +34,7 @@ export class GithubController {
       const payload = { success: true, data: repos, pagination: { hasMore, page, perPage, totalCount, totalEnabled, totalDisabled } };
       reposCache.set(cacheKey, { data: payload, expiresAt: Date.now() + REPOS_CACHE_TTL_MS });
 
+      res.set("Cache-Control", "private, max-age=30");
       res.json(payload);
     } catch (error: any) {
       console.error("GitHub repos error:", error);

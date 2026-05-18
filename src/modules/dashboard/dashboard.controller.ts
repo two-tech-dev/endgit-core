@@ -11,6 +11,7 @@ export class DashboardController {
       const cacheKey = req.user!.id;
       const cached = statusCache.get(cacheKey);
       if (cached && cached.expiresAt > Date.now()) {
+        res.set("Cache-Control", "private, max-age=30");
         return res.json(cached.data);
       }
 
@@ -18,6 +19,7 @@ export class DashboardController {
       const payload = { success: true, data };
       statusCache.set(cacheKey, { data: payload, expiresAt: Date.now() + STATUS_CACHE_TTL_MS });
 
+      res.set("Cache-Control", "private, max-age=30");
       res.json(payload);
     } catch (error: any) {
       console.error("Status check error:", error);
