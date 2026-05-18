@@ -82,17 +82,54 @@ export class GithubService {
     }
   }
 
-  async getUserRepos(userId: string, page: number, perPage: number) {
+  async getUserOrgs(userId: string) {
     const accessToken = await this.getAccessToken(userId);
     if (!accessToken) throw new Error("GitHub account not linked");
 
-    const ghRes = await fetch(`https://api.github.com/user/repos?sort=updated&per_page=${perPage}&page=${page}&affiliation=owner,collaborator,organization_member`, {
+    const ghRes = await fetch("https://api.github.com/user/orgs?per_page=100", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         Accept: "application/vnd.github.v3+json",
         "User-Agent": "EndGit-CI"
       }
     });
+
+    if (!ghRes.ok) throw new Error("Failed to fetch organizations from GitHub");
+
+    const ghOrgs = await ghRes.json() as any[];
+
+    return ghOrgs.map((org: any) => ({
+      id: org.id,
+      login: org.login,
+      description: org.description,
+      avatarUrl: org.avatar_url,
+      url: `https://github.com/${org.login}`,
+    }));
+  }
+
+  async getUserRepos(userId: string, page: number, perPage: number, org?: string) {
+    const accessToken = await this.getAccessToken(userId);
+    if (!accessToken) throw new Error("GitHub account not linked");
+
+    let ghRes: Response;
+
+    if (org) {
+      ghRes = await fetch(`https://api.github.com/orgs/${encodeURIComponent(org)}/repos?sort=updated&per_page=${perPage}&page=${page}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/vnd.github.v3+json",
+          "User-Agent": "EndGit-CI"
+        }
+      });
+    } else {
+      ghRes = await fetch(`https://api.github.com/user/repos?sort=updated&per_page=${perPage}&page=${page}&affiliation=owner,collaborator,organization_member`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/vnd.github.v3+json",
+          "User-Agent": "EndGit-CI"
+        }
+      });
+    }
 
     if (!ghRes.ok) throw new Error("Failed to fetch from GitHub");
 

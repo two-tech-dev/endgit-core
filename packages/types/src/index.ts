@@ -115,6 +115,14 @@ export interface UserProfile {
   createdAt: string;
 }
 
+export interface OrgSummary {
+  id: number;
+  login: string;
+  description: string | null;
+  avatarUrl: string;
+  url: string;
+}
+
 export interface DashboardStats {
   totalPlugins: number;
   totalDownloads: number;

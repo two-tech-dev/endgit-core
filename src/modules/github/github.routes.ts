@@ -4,6 +4,7 @@ import { githubController } from "./github.controller";
 
 export const githubRouter: Router = Router();
 
+githubRouter.get("/orgs", requireAuth, githubController.getOrgs);
 githubRouter.get("/repos", requireAuth, githubController.getRepos);
 githubRouter.post("/repos/:repoId/enable", requireAuth, githubController.enableCI);
 githubRouter.post("/repos/:pluginId/disable", requireAuth, githubController.disableCI);

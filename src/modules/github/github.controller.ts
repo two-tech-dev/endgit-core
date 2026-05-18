@@ -3,12 +3,23 @@ import { AuthRequest } from "../../middleware/auth";
 import { githubService } from "./github.service";
 
 export class GithubController {
+  async getOrgs(req: AuthRequest, res: Response) {
+    try {
+      const orgs = await githubService.getUserOrgs(req.user!.id);
+      res.json({ success: true, data: orgs });
+    } catch (error: any) {
+      console.error("GitHub orgs error:", error);
+      res.status(500).json({ success: false, error: error.message || "Failed to fetch organizations" });
+    }
+  }
+
   async getRepos(req: AuthRequest, res: Response) {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const perPage = parseInt(req.query.per_page as string) || 30;
+      const org = req.query.org as string | undefined;
 
-      const { repos, hasMore } = await githubService.getUserRepos(req.user!.id, page, perPage);
+      const { repos, hasMore } = await githubService.getUserRepos(req.user!.id, page, perPage, org);
       
       res.json({ success: true, data: repos, pagination: { hasMore, page, perPage } });
     } catch (error: any) {
