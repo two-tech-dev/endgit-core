@@ -2,11 +2,23 @@ import { Response } from "express";
 import { AuthRequest } from "../../middleware/auth";
 import { dashboardService } from "./dashboard.service";
 
+const statusCache = new Map<string, { data: any; expiresAt: number }>();
+const STATUS_CACHE_TTL_MS = 30_000;
+
 export class DashboardController {
   async getStatus(req: AuthRequest, res: Response) {
     try {
+      const cacheKey = req.user!.id;
+      const cached = statusCache.get(cacheKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        return res.json(cached.data);
+      }
+
       const data = await dashboardService.getStatus(req.user!.id);
-      res.json({ success: true, data });
+      const payload = { success: true, data };
+      statusCache.set(cacheKey, { data: payload, expiresAt: Date.now() + STATUS_CACHE_TTL_MS });
+
+      res.json(payload);
     } catch (error: any) {
       console.error("Status check error:", error);
       res.status(500).json({ success: false, error: "Failed to check status" });
