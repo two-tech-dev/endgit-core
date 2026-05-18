@@ -6,14 +6,19 @@ const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 const connection = new IORedis(REDIS_URL, {
   maxRetriesPerRequest: null,
   family: 4,
-  tls: REDIS_URL.startsWith("rediss://") ? { rejectUnauthorized: false } : undefined,
+  tls: REDIS_URL.startsWith("rediss://")
+    ? { rejectUnauthorized: false }
+    : undefined,
 });
 const buildQueue = new Queue("build-jobs", { connection });
 
 export class PluginsService {
   async listPlugins(query: any) {
     const page = Math.max(1, parseInt(query.page as string) || 1);
-    const pageSize = Math.min(50, Math.max(1, parseInt(query.pageSize as string) || 20));
+    const pageSize = Math.min(
+      50,
+      Math.max(1, parseInt(query.pageSize as string) || 20),
+    );
     const sort = (query.sort as string) || "downloads";
     const order = (query.order as string) || "desc";
     const tag = query.tag as string;
@@ -25,7 +30,8 @@ export class PluginsService {
 
     if (tag) where.tags = { has: tag };
     if (category) where.tags = { has: category };
-    if (type && ["PYTHON", "CPP", "BOTH"].includes(type)) where.pluginType = type;
+    if (type && ["PYTHON", "CPP", "BOTH"].includes(type))
+      where.pluginType = type;
 
     // Filter by author (username or GitHub org from repoUrl)
     const author = query.author as string;
@@ -61,10 +67,20 @@ export class PluginsService {
 
     const [plugins, total] = await Promise.all([
       prisma.plugin.findMany({
-        where, orderBy, skip: (page - 1) * pageSize, take: pageSize,
+        where,
+        orderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
         include: {
-          author: { select: { username: true, displayName: true, avatarUrl: true } },
-          versions: { where: { status: "APPROVED" }, orderBy: { createdAt: "desc" }, select: { version: true }, take: 1 },
+          author: {
+            select: { username: true, displayName: true, avatarUrl: true },
+          },
+          versions: {
+            where: { status: "APPROVED" },
+            orderBy: { createdAt: "desc" },
+            select: { version: true },
+            take: 1,
+          },
         },
       }),
       prisma.plugin.count({ where }),
@@ -76,7 +92,13 @@ export class PluginsService {
       versions: undefined,
     }));
 
-    return { plugins: data, page, pageSize, total, totalPages: Math.ceil(total / pageSize) };
+    return {
+      plugins: data,
+      page,
+      pageSize,
+      total,
+      totalPages: Math.ceil(total / pageSize),
+    };
   }
 
   async getAnalytics(slug: string) {
@@ -85,7 +107,7 @@ export class PluginsService {
 
     const analytics = await prisma.pluginAnalytics.findMany({
       where: { plugin: { slug }, date: { gte: thirtyDaysAgo } },
-      orderBy: { date: "asc" }
+      orderBy: { date: "asc" },
     });
 
     if (analytics.length === 0) {
@@ -99,12 +121,19 @@ export class PluginsService {
   async getDependencies(slug: string) {
     const latestVersion = await prisma.version.findFirst({
       where: { plugin: { slug }, isLatest: true },
-      select: { id: true, version: true, dependencies: { select: { name: true, version: true } } }
+      select: {
+        id: true,
+        version: true,
+        dependencies: { select: { name: true, version: true } },
+      },
     });
 
     if (!latestVersion) throw new Error("No version found");
 
-    return { version: latestVersion.version, dependencies: latestVersion.dependencies };
+    return {
+      version: latestVersion.version,
+      dependencies: latestVersion.dependencies,
+    };
   }
 
   async getTrending() {
@@ -113,17 +142,31 @@ export class PluginsService {
       orderBy: { downloads: "desc" },
       take: 12,
       include: {
-        author: { select: { username: true, displayName: true, avatarUrl: true } },
-        versions: { where: { status: "APPROVED" }, orderBy: { createdAt: "desc" }, select: { version: true }, take: 1 },
+        author: {
+          select: { username: true, displayName: true, avatarUrl: true },
+        },
+        versions: {
+          where: { status: "APPROVED" },
+          orderBy: { createdAt: "desc" },
+          select: { version: true },
+          take: 1,
+        },
       },
     });
 
-    return plugins.map((p: any) => ({ ...p, latestVersion: p.versions[0]?.version || null, versions: undefined }));
+    return plugins.map((p: any) => ({
+      ...p,
+      latestVersion: p.versions[0]?.version || null,
+      versions: undefined,
+    }));
   }
 
   async getLatest(query: { page?: string; pageSize?: string }) {
     const page = Math.max(1, parseInt(query.page as string) || 1);
-    const pageSize = Math.min(50, Math.max(1, parseInt(query.pageSize as string) || 12));
+    const pageSize = Math.min(
+      50,
+      Math.max(1, parseInt(query.pageSize as string) || 12),
+    );
     const where = { status: "APPROVED" as const };
 
     const [plugins, total] = await Promise.all([
@@ -133,15 +176,26 @@ export class PluginsService {
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
-          author: { select: { username: true, displayName: true, avatarUrl: true } },
-          versions: { where: { status: "APPROVED" }, orderBy: { createdAt: "desc" }, select: { version: true }, take: 1 },
+          author: {
+            select: { username: true, displayName: true, avatarUrl: true },
+          },
+          versions: {
+            where: { status: "APPROVED" },
+            orderBy: { createdAt: "desc" },
+            select: { version: true },
+            take: 1,
+          },
         },
       }),
       prisma.plugin.count({ where }),
     ]);
 
     return {
-      plugins: plugins.map((p: any) => ({ ...p, latestVersion: p.versions[0]?.version || null, versions: undefined })),
+      plugins: plugins.map((p: any) => ({
+        ...p,
+        latestVersion: p.versions[0]?.version || null,
+        versions: undefined,
+      })),
       page,
       pageSize,
       total,
@@ -167,13 +221,30 @@ export class PluginsService {
     const plugin = await prisma.plugin.findUnique({
       where: { slug },
       include: {
-        author: { select: { username: true, displayName: true, avatarUrl: true, bio: true } },
+        author: {
+          select: {
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+            bio: true,
+          },
+        },
         versions: {
           orderBy: { createdAt: "desc" },
           select: {
-            id: true, version: true, changelog: true, longDescription: true, fileName: true, fileSize: true,
-            downloads: true, isLatest: true, status: true, createdAt: true, supportedApis: true, fileHash: true,
-            producers: { select: { githubUser: true, role: true } }
+            id: true,
+            version: true,
+            changelog: true,
+            longDescription: true,
+            fileName: true,
+            fileSize: true,
+            downloads: true,
+            isLatest: true,
+            status: true,
+            createdAt: true,
+            supportedApis: true,
+            fileHash: true,
+            producers: { select: { githubUser: true, role: true } },
           },
         },
         ratings: { select: { score: true } },
@@ -185,14 +256,38 @@ export class PluginsService {
     const isAuthor = user?.id === plugin.authorId;
     const isAdmin = user?.trustLevel === "ADMIN";
 
-    if (!isAuthor && !isAdmin && plugin.status !== "APPROVED" && plugin.status !== "PENDING_REVIEW") {
+    if (
+      !isAuthor &&
+      !isAdmin &&
+      plugin.status !== "APPROVED" &&
+      plugin.status !== "PENDING_REVIEW"
+    ) {
       throw new Error("Plugin not found");
     }
 
-    const visibleVersions = (isAuthor || isAdmin) ? plugin.versions : plugin.versions.filter((v: any) => v.status === "APPROVED");
+    // Hide from public if no approved versions exist (owner/admin can still see)
+    if (
+      !isAuthor &&
+      !isAdmin &&
+      !plugin.versions.some((v: any) => v.status === "APPROVED")
+    ) {
+      throw new Error("Plugin not found");
+    }
+
+    const visibleVersions =
+      isAuthor || isAdmin
+        ? plugin.versions
+        : plugin.versions.filter((v: any) => v.status === "APPROVED");
     const totalRatings = plugin.ratings.length;
-    const averageRating = totalRatings > 0 ? plugin.ratings.reduce((sum: number, r: any) => sum + r.score, 0) / totalRatings : 0;
-    const latestApprovedVersion = visibleVersions.find((v: any) => v.isLatest)?.version || visibleVersions[0]?.version || null;
+    const averageRating =
+      totalRatings > 0
+        ? plugin.ratings.reduce((sum: number, r: any) => sum + r.score, 0) /
+          totalRatings
+        : 0;
+    const latestApprovedVersion =
+      visibleVersions.find((v: any) => v.isLatest)?.version ||
+      visibleVersions[0]?.version ||
+      null;
 
     return {
       ...plugin,
@@ -205,22 +300,50 @@ export class PluginsService {
   }
 
   async createPlugin(data: any, userId: string) {
-    const { name, displayName, description, longDescription, pluginType, repoUrl, license, tags } = data;
+    const {
+      name,
+      displayName,
+      description,
+      longDescription,
+      pluginType,
+      repoUrl,
+      license,
+      tags,
+    } = data;
 
-    if (!name || !displayName || !description) throw new Error("name, displayName, and description are required");
+    if (!name || !displayName || !description)
+      throw new Error("name, displayName, and description are required");
 
-    const slug = name.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
-    const existing = await prisma.plugin.findFirst({ where: { OR: [{ name }, { slug }] } });
+    const slug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+    const existing = await prisma.plugin.findFirst({
+      where: { OR: [{ name }, { slug }] },
+    });
 
     if (existing) throw new Error("A plugin with this name already exists");
 
     return await prisma.plugin.create({
       data: {
-        name, slug, displayName, description, longDescription: longDescription || null,
-        pluginType: pluginType || "PYTHON", repoUrl: repoUrl || null, license: license || null,
-        tags: tags || [], authorId: userId, status: "DRAFT",
+        name,
+        slug,
+        displayName,
+        description,
+        longDescription: longDescription || null,
+        pluginType: pluginType || "PYTHON",
+        repoUrl: repoUrl || null,
+        license: license || null,
+        tags: tags || [],
+        authorId: userId,
+        status: "DRAFT",
       },
-      include: { author: { select: { username: true, displayName: true, avatarUrl: true } } },
+      include: {
+        author: {
+          select: { username: true, displayName: true, avatarUrl: true },
+        },
+      },
     });
   }
 
@@ -228,10 +351,18 @@ export class PluginsService {
     const plugin = await prisma.plugin.findUnique({ where: { slug } });
 
     if (!plugin) throw new Error("Plugin not found");
-    if (plugin.authorId !== user.id && user.trustLevel !== "ADMIN") throw new Error("Not authorized");
+    if (plugin.authorId !== user.id && user.trustLevel !== "ADMIN")
+      throw new Error("Not authorized");
 
     // repoUrl cannot be changed after creation
-    const { displayName, description, longDescription, iconUrl, license, tags } = data;
+    const {
+      displayName,
+      description,
+      longDescription,
+      iconUrl,
+      license,
+      tags,
+    } = data;
 
     // Check displayName uniqueness if changing
     if (displayName && displayName !== plugin.displayName) {
@@ -239,9 +370,10 @@ export class PluginsService {
         throw new Error("Cannot change display name of an approved plugin");
       }
       const existing = await prisma.plugin.findFirst({
-        where: { displayName, id: { not: plugin.id } }
+        where: { displayName, id: { not: plugin.id } },
       });
-      if (existing) throw new Error("A plugin with this display name already exists");
+      if (existing)
+        throw new Error("A plugin with this display name already exists");
     }
 
     return await prisma.plugin.update({
@@ -249,11 +381,16 @@ export class PluginsService {
       data: {
         ...(displayName && { displayName }),
         ...(description && { description }),
-        ...(longDescription !== undefined && { longDescription }), ...(iconUrl !== undefined && { iconUrl }),
+        ...(longDescription !== undefined && { longDescription }),
+        ...(iconUrl !== undefined && { iconUrl }),
         ...(license !== undefined && { license }),
         ...(tags && { tags }),
       },
-      include: { author: { select: { username: true, displayName: true, avatarUrl: true } } },
+      include: {
+        author: {
+          select: { username: true, displayName: true, avatarUrl: true },
+        },
+      },
     });
   }
 
@@ -261,7 +398,8 @@ export class PluginsService {
     const plugin = await prisma.plugin.findUnique({ where: { slug } });
 
     if (!plugin) throw new Error("Plugin not found");
-    if (plugin.authorId !== user.id && user.trustLevel !== "ADMIN") throw new Error("Not authorized");
+    if (plugin.authorId !== user.id && user.trustLevel !== "ADMIN")
+      throw new Error("Not authorized");
 
     await prisma.plugin.delete({ where: { slug } });
   }
@@ -270,8 +408,10 @@ export class PluginsService {
     const plugin = await prisma.plugin.findUnique({ where: { slug } });
 
     if (!plugin) throw new Error("Plugin not found");
-    if (plugin.authorId !== user.id && user.trustLevel !== "ADMIN") throw new Error("Not authorized");
-    if (!plugin.repoUrl) throw new Error("Repository URL is required to trigger a build");
+    if (plugin.authorId !== user.id && user.trustLevel !== "ADMIN")
+      throw new Error("Not authorized");
+    if (!plugin.repoUrl)
+      throw new Error("Repository URL is required to trigger a build");
 
     const { commitHash, branch } = data;
 
