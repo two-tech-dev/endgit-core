@@ -2,49 +2,66 @@ import { prisma } from "@endgit/database";
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
 import { requireSecret } from "../../lib/secrets";
+import { stringify } from "yaml";
+import {
+  getInstallationId,
+  getInstallationToken,
+  commitFileToRepo,
+} from "../../lib/githubApp";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 const connection = new IORedis(REDIS_URL, {
   maxRetriesPerRequest: null,
   family: 4,
-  tls: REDIS_URL.startsWith("rediss://") ? { rejectUnauthorized: false } : undefined,
+  tls: REDIS_URL.startsWith("rediss://")
+    ? { rejectUnauthorized: false }
+    : undefined,
 });
 const buildQueue = new Queue("build-jobs", { connection });
 
 const WEBHOOK_SECRET = requireSecret("ENDGIT_WEBHOOK_SECRET");
-const WEBHOOK_URL = process.env.ENDGIT_WEBHOOK_URL || "http://localhost:4000/api/v1/webhooks/github";
+const WEBHOOK_URL =
+  process.env.ENDGIT_WEBHOOK_URL ||
+  "http://localhost:4000/api/v1/webhooks/github";
 
 export class GithubService {
   async getAccessToken(userId: string): Promise<string | null> {
     const account = await prisma.account.findFirst({
       where: { userId, provider: "github" },
-      select: { access_token: true }
+      select: { access_token: true },
     });
     return account?.access_token || null;
   }
 
-  async createGitHubWebhook(accessToken: string, owner: string, repo: string): Promise<number | null> {
+  async createGitHubWebhook(
+    accessToken: string,
+    owner: string,
+    repo: string,
+  ): Promise<number | null> {
     try {
-      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/hooks`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/vnd.github.v3+json",
-          "User-Agent": "EndGit-CI",
-          "Content-Type": "application/json"
+      const res = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/hooks`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: "application/vnd.github.v3+json",
+            "User-Agent": "EndGit-CI",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: "web",
+            active: true,
+            events: ["push"],
+            config: {
+              url: WEBHOOK_URL,
+              content_type: "json",
+              secret: WEBHOOK_SECRET,
+              insecure_ssl: "0",
+            },
+          }),
         },
-        body: JSON.stringify({
-          name: "web",
-          active: true,
-          events: ["push"],
-          config: {
-            url: WEBHOOK_URL,
-            content_type: "json",
-            secret: WEBHOOK_SECRET,
-            insecure_ssl: "0"
-          }
-        })
-      });
+      );
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -52,8 +69,10 @@ export class GithubService {
         return null;
       }
 
-      const hook = await res.json() as any;
-      console.log(`[GitHub] ✅ Webhook created for ${owner}/${repo} (ID: ${hook.id})`);
+      const hook = (await res.json()) as any;
+      console.log(
+        `[GitHub] ✅ Webhook created for ${owner}/${repo} (ID: ${hook.id})`,
+      );
       return hook.id;
     } catch (error: any) {
       console.error("[GitHub] Webhook creation error:", error.message);
@@ -61,18 +80,28 @@ export class GithubService {
     }
   }
 
-  async deleteGitHubWebhook(accessToken: string, owner: string, repo: string, hookId: number): Promise<boolean> {
+  async deleteGitHubWebhook(
+    accessToken: string,
+    owner: string,
+    repo: string,
+    hookId: number,
+  ): Promise<boolean> {
     try {
-      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/hooks/${hookId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/vnd.github.v3+json",
-          "User-Agent": "EndGit-CI"
-        }
-      });
+      const res = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/hooks/${hookId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: "application/vnd.github.v3+json",
+            "User-Agent": "EndGit-CI",
+          },
+        },
+      );
       if (res.ok || res.status === 204) {
-        console.log(`[GitHub] 🗑️ Webhook ${hookId} deleted from ${owner}/${repo}`);
+        console.log(
+          `[GitHub] 🗑️ Webhook ${hookId} deleted from ${owner}/${repo}`,
+        );
         return true;
       }
       return false;
@@ -90,13 +119,13 @@ export class GithubService {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         Accept: "application/vnd.github.v3+json",
-        "User-Agent": "EndGit-CI"
-      }
+        "User-Agent": "EndGit-CI",
+      },
     });
 
     if (!ghRes.ok) throw new Error("Failed to fetch organizations from GitHub");
 
-    const ghOrgs = await ghRes.json() as any[];
+    const ghOrgs = (await ghRes.json()) as any[];
 
     return ghOrgs.map((org: any) => ({
       id: org.id,
@@ -107,28 +136,39 @@ export class GithubService {
     }));
   }
 
-  async getUserRepos(userId: string, page: number, perPage: number, org?: string) {
+  async getUserRepos(
+    userId: string,
+    page: number,
+    perPage: number,
+    org?: string,
+  ) {
     const accessToken = await this.getAccessToken(userId);
     if (!accessToken) throw new Error("GitHub account not linked");
 
     let ghRes: Response;
 
     if (org) {
-      ghRes = await fetch(`https://api.github.com/orgs/${encodeURIComponent(org)}/repos?sort=updated&per_page=${perPage}&page=${page}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/vnd.github.v3+json",
-          "User-Agent": "EndGit-CI"
-        }
-      });
+      ghRes = await fetch(
+        `https://api.github.com/orgs/${encodeURIComponent(org)}/repos?sort=updated&per_page=${perPage}&page=${page}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: "application/vnd.github.v3+json",
+            "User-Agent": "EndGit-CI",
+          },
+        },
+      );
     } else {
-      ghRes = await fetch(`https://api.github.com/user/repos?sort=updated&per_page=${perPage}&page=${page}&affiliation=owner,collaborator,organization_member`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/vnd.github.v3+json",
-          "User-Agent": "EndGit-CI"
-        }
-      });
+      ghRes = await fetch(
+        `https://api.github.com/user/repos?sort=updated&per_page=${perPage}&page=${page}&affiliation=owner,collaborator,organization_member`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: "application/vnd.github.v3+json",
+            "User-Agent": "EndGit-CI",
+          },
+        },
+      );
     }
 
     if (!ghRes.ok) throw new Error("Failed to fetch from GitHub");
@@ -138,7 +178,7 @@ export class GithubService {
     const linkHeader = ghRes.headers.get("link");
     if (linkHeader && linkHeader.includes('rel="next"')) hasMore = true;
 
-    const ghRepos = await ghRes.json() as any[];
+    const ghRepos = (await ghRes.json()) as any[];
 
     if (linkHeader) {
       const lastMatch = linkHeader.match(/[?&]page=(\d+)[^>]*>;\s*rel="last"/);
@@ -156,7 +196,14 @@ export class GithubService {
 
     const existingPlugins = await prisma.plugin.findMany({
       where: { authorId: userId },
-      select: { id: true, repoUrl: true, slug: true, status: true, name: true, webhookId: true }
+      select: {
+        id: true,
+        repoUrl: true,
+        slug: true,
+        status: true,
+        name: true,
+        webhookId: true,
+      },
     });
 
     const repoUrlMap = new Map(existingPlugins.map((p: any) => [p.repoUrl, p]));
@@ -191,27 +238,38 @@ export class GithubService {
     let { language } = repoData;
 
     const existing = await prisma.plugin.findFirst({
-      where: { repoUrl: htmlUrl, authorId: userId }
+      where: { repoUrl: htmlUrl, authorId: userId },
     });
     if (existing && existing.webhookId) {
       throw new Error("CI already enabled for this repo");
     }
 
-    const slug = name.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-");
+    const slug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "-")
+      .replace(/-+/g, "-");
 
     const accessToken = await this.getAccessToken(userId);
-    if (!accessToken || !fullName) throw new Error("GitHub account not linked properly");
+    if (!accessToken || !fullName)
+      throw new Error("GitHub account not linked properly");
 
     const [owner, repo] = fullName.split("/");
 
     // Fallback language detection when GitHub hasn't detected language yet
     if (!language) {
       try {
-        const langRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/languages`, {
-          headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github.v3+json", "User-Agent": "EndGit-CI" }
-        });
+        const langRes = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/languages`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: "application/vnd.github.v3+json",
+              "User-Agent": "EndGit-CI",
+            },
+          },
+        );
         if (langRes.ok) {
-          const langs = await langRes.json() as Record<string, number>;
+          const langs = (await langRes.json()) as Record<string, number>;
           // Pick the language with the most bytes
           const sorted = Object.entries(langs).sort((a, b) => b[1] - a[1]);
           if (sorted.length > 0) {
@@ -224,15 +282,31 @@ export class GithubService {
     // If still no language, scan repo files for known extensions
     if (!language) {
       try {
-        const contentsRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents`, {
-          headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github.v3+json", "User-Agent": "EndGit-CI" }
-        });
+        const contentsRes = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/contents`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: "application/vnd.github.v3+json",
+              "User-Agent": "EndGit-CI",
+            },
+          },
+        );
         if (contentsRes.ok) {
           const files = await contentsRes.json();
           if (Array.isArray(files)) {
             const names = files.map((f: any) => f.name.toLowerCase());
-            const hasCpp = names.some((n: string) => n.endsWith(".cpp") || n.endsWith(".h") || n.endsWith(".hpp") || n === "cmakelists.txt");
-            const hasPy = names.some((n: string) => n.endsWith(".py") || n === "pyproject.toml" || n === "setup.py");
+            const hasCpp = names.some(
+              (n: string) =>
+                n.endsWith(".cpp") ||
+                n.endsWith(".h") ||
+                n.endsWith(".hpp") ||
+                n === "cmakelists.txt",
+            );
+            const hasPy = names.some(
+              (n: string) =>
+                n.endsWith(".py") || n === "pyproject.toml" || n === "setup.py",
+            );
             if (hasCpp) language = "C++";
             else if (hasPy) language = "Python";
           }
@@ -241,18 +315,30 @@ export class GithubService {
     }
 
     if (!language) {
-      throw new Error("Unable to detect repository language. Please ensure the repository contains C++ or Python source files.");
+      throw new Error(
+        "Unable to detect repository language. Please ensure the repository contains C++ or Python source files.",
+      );
     }
 
     if (language !== "C++" && language !== "Python" && language !== "C") {
-      throw new Error(`Unsupported repository language: ${language}. Only C++ and Python are supported for Endstone plugins.`);
+      throw new Error(
+        `Unsupported repository language: ${language}. Only C++ and Python are supported for Endstone plugins.`,
+      );
     }
 
-    const pluginType = (language === "C++" || language === "C") ? "CPP" : "PYTHON";
+    const pluginType =
+      language === "C++" || language === "C" ? "CPP" : "PYTHON";
 
-    const contentsRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents`, {
-      headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github.v3+json", "User-Agent": "EndGit-CI" }
-    });
+    const contentsRes = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/contents`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/vnd.github.v3+json",
+          "User-Agent": "EndGit-CI",
+        },
+      },
+    );
 
     if (contentsRes.ok) {
       const contents = await contentsRes.json();
@@ -261,29 +347,48 @@ export class GithubService {
 
         const checkFileContent = async (exactFilename: string) => {
           try {
-            const fileRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${exactFilename}`, {
-              headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github.v3+json", "User-Agent": "EndGit-CI" }
-            });
+            const fileRes = await fetch(
+              `https://api.github.com/repos/${owner}/${repo}/contents/${exactFilename}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                  Accept: "application/vnd.github.v3+json",
+                  "User-Agent": "EndGit-CI",
+                },
+              },
+            );
             if (fileRes.ok) {
-              const fileData = await fileRes.json() as any;
+              const fileData = (await fileRes.json()) as any;
               if (fileData.content) {
-                const decodedContent = Buffer.from(fileData.content, 'base64').toString('utf-8').toLowerCase();
-                return decodedContent.includes('endstone');
+                const decodedContent = Buffer.from(fileData.content, "base64")
+                  .toString("utf-8")
+                  .toLowerCase();
+                return decodedContent.includes("endstone");
               }
             }
           } catch (e) {}
           return false;
         };
 
-        const checkCandidates = ['pyproject.toml', 'cmakelists.txt', 'setup.py', 'requirements.txt'];
+        const checkCandidates = [
+          "pyproject.toml",
+          "cmakelists.txt",
+          "setup.py",
+          "requirements.txt",
+        ];
         for (const candidate of checkCandidates) {
           if (isValidEndstone) break;
-          const matchedFile = contents.find((f: any) => f.name.toLowerCase() === candidate);
-          if (matchedFile) isValidEndstone = await checkFileContent(matchedFile.name);
+          const matchedFile = contents.find(
+            (f: any) => f.name.toLowerCase() === candidate,
+          );
+          if (matchedFile)
+            isValidEndstone = await checkFileContent(matchedFile.name);
         }
 
         if (!isValidEndstone) {
-          throw new Error("Repository does not appear to be an Endstone plugin. The word 'endstone' must exist in pyproject.toml, CMakeLists.txt, setup.py, or requirements.txt.");
+          throw new Error(
+            "Repository does not appear to be an Endstone plugin. The word 'endstone' must exist in pyproject.toml, CMakeLists.txt, setup.py, or requirements.txt.",
+          );
         }
       }
     }
@@ -291,21 +396,25 @@ export class GithubService {
     const webhookId = await this.createGitHubWebhook(accessToken, owner, repo);
 
     if (!webhookId) {
-      throw new Error(`Unable to create webhook for ${fullName}. Please ensure the EndGit GitHub App is installed on the organization.`);
+      throw new Error(
+        `Unable to create webhook for ${fullName}. Please ensure the EndGit GitHub App is installed on the organization.`,
+      );
     }
 
     let finalSlug = slug;
     let plugin;
-    
+
     if (existing) {
       plugin = await prisma.plugin.update({
         where: { id: existing.id },
-        data: { webhookId: String(webhookId) }
+        data: { webhookId: String(webhookId) },
       });
     } else {
       let isUnique = false;
       while (!isUnique) {
-        const check = await prisma.plugin.findUnique({ where: { slug: finalSlug } });
+        const check = await prisma.plugin.findUnique({
+          where: { slug: finalSlug },
+        });
         if (check) finalSlug = `${slug}-${Math.floor(Math.random() * 10000)}`;
         else isUnique = true;
       }
@@ -314,35 +423,77 @@ export class GithubService {
         data: {
           name: finalSlug,
           slug: finalSlug,
-          displayName: name,
+          displayName: repoData.endgitConfig?.name || name,
           description: description || `${name} — Endstone plugin`,
           repoUrl: htmlUrl,
           pluginType,
           status: "DRAFT",
           authorId: userId,
           webhookId: String(webhookId),
-        }
+        },
       });
     }
 
     if (!existing) {
+      // Commit .endgit.yml to repo via bot if config provided
+      const endgitConfig = repoData.endgitConfig;
+      if (endgitConfig) {
+        try {
+          const installationId = await getInstallationId(accessToken);
+          if (installationId) {
+            const installToken = await getInstallationToken(installationId);
+            if (installToken) {
+              const yamlContent = stringify({
+                ...(endgitConfig.name && { name: endgitConfig.name }),
+                ...(endgitConfig.icon && { icon: endgitConfig.icon }),
+                ...(endgitConfig.branch &&
+                  endgitConfig.branch.length > 0 && {
+                    branch: endgitConfig.branch,
+                  }),
+              });
+              const fileContent = `# EndGit Configuration\n# Docs: https://endgit.com/docs/config\n\n${yamlContent}`;
+              await commitFileToRepo(
+                installToken,
+                owner,
+                repo,
+                ".endgit.yml",
+                fileContent,
+                "chore: add EndGit configuration",
+                defaultBranch || "main",
+              );
+            }
+          }
+        } catch (e) {
+          console.warn(`Failed to commit .endgit.yml to ${fullName}:`, e);
+        }
+      }
+
       let latestCommitHash = null;
       let latestCommitMessage = "Initial build triggered by enabling CI";
 
       try {
-        const commitRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits/${defaultBranch || 'main'}`, {
-          headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github.v3+json", "User-Agent": "EndGit-CI" }
-        });
+        const commitRes = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/commits/${defaultBranch || "main"}`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: "application/vnd.github.v3+json",
+              "User-Agent": "EndGit-CI",
+            },
+          },
+        );
         if (commitRes.ok) {
-          const commitData = await commitRes.json() as any;
+          const commitData = (await commitRes.json()) as any;
           if (commitData.sha) latestCommitHash = commitData.sha;
-          if (commitData.commit && commitData.commit.message) latestCommitMessage = commitData.commit.message;
+          if (commitData.commit && commitData.commit.message)
+            latestCommitMessage = commitData.commit.message;
         }
       } catch (e) {
         console.warn(`Failed to fetch latest commit for ${fullName}:`, e);
       }
 
-      const buildNumber = await prisma.build.count({ where: { pluginId: plugin.id } }) + 1;
+      const buildNumber =
+        (await prisma.build.count({ where: { pluginId: plugin.id } })) + 1;
       const build = await prisma.build.create({
         data: {
           buildNumber,
@@ -352,7 +503,7 @@ export class GithubService {
           commitHash: latestCommitHash,
           commitMessage: latestCommitMessage,
           triggerType: "MANUAL",
-        }
+        },
       });
 
       await buildQueue.add("build-plugin", {
@@ -372,7 +523,7 @@ export class GithubService {
 
   async disableCI(userId: string, pluginId: string) {
     const plugin = await prisma.plugin.findFirst({
-      where: { id: pluginId, authorId: userId }
+      where: { id: pluginId, authorId: userId },
     });
 
     if (!plugin) throw new Error("Plugin not found");
@@ -382,23 +533,34 @@ export class GithubService {
       if (accessToken) {
         const match = plugin.repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
         if (match) {
-          await this.deleteGitHubWebhook(accessToken, match[1], match[2], parseInt(plugin.webhookId));
+          await this.deleteGitHubWebhook(
+            accessToken,
+            match[1],
+            match[2],
+            parseInt(plugin.webhookId),
+          );
         }
       }
     }
 
     await prisma.plugin.update({
       where: { id: plugin.id },
-      data: { webhookId: null }
+      data: { webhookId: null },
     });
   }
 
   async getRepoReadme(userId: string, owner: string, repo: string) {
     const accessToken = await this.getAccessToken(userId);
-    const headers: any = { Accept: "application/vnd.github.v3.raw", "User-Agent": "EndGit-CI" };
+    const headers: any = {
+      Accept: "application/vnd.github.v3.raw",
+      "User-Agent": "EndGit-CI",
+    };
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-    const ghRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/readme`, { headers });
+    const ghRes = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/readme`,
+      { headers },
+    );
     if (!ghRes.ok) throw new Error("README not found");
 
     return ghRes.text();
@@ -406,13 +568,19 @@ export class GithubService {
 
   async getRepoLicense(userId: string, owner: string, repo: string) {
     const accessToken = await this.getAccessToken(userId);
-    const headers: any = { Accept: "application/vnd.github.v3+json", "User-Agent": "EndGit-CI" };
+    const headers: any = {
+      Accept: "application/vnd.github.v3+json",
+      "User-Agent": "EndGit-CI",
+    };
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-    const ghRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/license`, { headers });
+    const ghRes = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/license`,
+      { headers },
+    );
     if (!ghRes.ok) throw new Error("License not found");
 
-    const data = await ghRes.json() as any;
+    const data = (await ghRes.json()) as any;
     return data.license;
   }
 }
