@@ -68,7 +68,7 @@ export class PluginsService {
     const [plugins, total] = await Promise.all([
       prisma.plugin.findMany({
         where,
-        orderBy,
+        orderBy: [{ isFeatured: "desc" }, orderBy],
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
