@@ -19,7 +19,8 @@ export class PluginsService {
       50,
       Math.max(1, parseInt(query.pageSize as string) || 20),
     );
-    const sort = (query.sort as string) || "downloads";
+    const sortParam = query.sort as string;
+    const sort = sortParam || "downloads";
     const order = (query.order as string) || "desc";
     const tag = query.tag as string;
     const type = query.type as string;
@@ -68,7 +69,7 @@ export class PluginsService {
     const [plugins, total] = await Promise.all([
       prisma.plugin.findMany({
         where,
-        orderBy: [{ isFeatured: "desc" }, orderBy],
+        orderBy: sortParam ? orderBy : [{ isFeatured: "desc" }, orderBy],
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
