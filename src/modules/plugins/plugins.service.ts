@@ -78,7 +78,7 @@ export class PluginsService {
           versions: {
             where: { status: "APPROVED" },
             orderBy: { createdAt: "desc" },
-            select: { version: true },
+            select: { version: true, isPreRelease: true },
             take: 1,
           },
         },
@@ -89,6 +89,7 @@ export class PluginsService {
     const data = plugins.map((p: any) => ({
       ...p,
       latestVersion: p.versions[0]?.version || null,
+      isPreRelease: p.versions[0]?.isPreRelease || false,
       versions: undefined,
     }));
 
@@ -148,7 +149,7 @@ export class PluginsService {
         versions: {
           where: { status: "APPROVED" },
           orderBy: { createdAt: "desc" },
-          select: { version: true },
+          select: { version: true, isPreRelease: true },
           take: 1,
         },
       },
@@ -157,6 +158,7 @@ export class PluginsService {
     return plugins.map((p: any) => ({
       ...p,
       latestVersion: p.versions[0]?.version || null,
+      isPreRelease: p.versions[0]?.isPreRelease || false,
       versions: undefined,
     }));
   }
@@ -182,7 +184,7 @@ export class PluginsService {
           versions: {
             where: { status: "APPROVED" },
             orderBy: { createdAt: "desc" },
-            select: { version: true },
+            select: { version: true, isPreRelease: true },
             take: 1,
           },
         },
@@ -194,6 +196,7 @@ export class PluginsService {
       plugins: plugins.map((p: any) => ({
         ...p,
         latestVersion: p.versions[0]?.version || null,
+        isPreRelease: p.versions[0]?.isPreRelease || false,
         versions: undefined,
       })),
       page,
@@ -240,6 +243,7 @@ export class PluginsService {
             fileSize: true,
             downloads: true,
             isLatest: true,
+            isPreRelease: true,
             status: true,
             createdAt: true,
             supportedApis: true,
@@ -362,12 +366,13 @@ export class PluginsService {
       iconUrl,
       license,
       tags,
+      isPreRelease,
     } = data;
 
-    // Check displayName uniqueness if changing
+    // Check displayName uniqueness if changing (only ADMIN can change)
     if (displayName && displayName !== plugin.displayName) {
-      if (plugin.status === "APPROVED" && user.trustLevel !== "ADMIN") {
-        throw new Error("Cannot change display name of an approved plugin");
+      if (user.trustLevel !== "ADMIN") {
+        throw new Error("Cannot change display name. Contact an admin.");
       }
       const existing = await prisma.plugin.findFirst({
         where: { displayName, id: { not: plugin.id } },
@@ -376,21 +381,38 @@ export class PluginsService {
         throw new Error("A plugin with this display name already exists");
     }
 
-    return await prisma.plugin.update({
-      where: { slug },
-      data: {
-        ...(displayName && { displayName }),
-        ...(description && { description }),
-        ...(longDescription !== undefined && { longDescription }),
-        ...(iconUrl !== undefined && { iconUrl }),
-        ...(license !== undefined && { license }),
-        ...(tags && { tags }),
-      },
-      include: {
-        author: {
-          select: { username: true, displayName: true, avatarUrl: true },
+    return await prisma.$transaction(async (tx) => {
+      const updatedPlugin = await tx.plugin.update({
+        where: { slug },
+        data: {
+          ...(displayName && { displayName }),
+          ...(description && { description }),
+          ...(longDescription !== undefined && { longDescription }),
+          ...(iconUrl !== undefined && { iconUrl }),
+          ...(license !== undefined && { license }),
+          ...(tags && { tags }),
         },
-      },
+        include: {
+          author: {
+            select: { username: true, displayName: true, avatarUrl: true },
+          },
+        },
+      });
+
+      if (isPreRelease !== undefined) {
+        const latestVersion = await tx.version.findFirst({
+          where: { pluginId: plugin.id },
+          orderBy: { createdAt: "desc" },
+        });
+        if (latestVersion) {
+          await tx.version.update({
+            where: { id: latestVersion.id },
+            data: { isPreRelease },
+          });
+        }
+      }
+
+      return updatedPlugin;
     });
   }
 

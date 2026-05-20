@@ -189,6 +189,7 @@ model Version {
   supportedApis String[]
   downloads     Int           @default(0)
   isLatest      Boolean       @default(false)
+  isPreRelease  Boolean       @default(false)
   status        VersionStatus @default(PENDING)
   statusReason  String?       @db.Text // Reason for REJECTED status
   createdAt     DateTime      @default(now())

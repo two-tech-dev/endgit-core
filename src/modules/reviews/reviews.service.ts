@@ -28,30 +28,47 @@ export class ReviewsService {
   async submitReview(slug: string, reviewerId: string, data: any) {
     const plugin = await prisma.plugin.findUnique({
       where: { slug },
-      include: { author: { select: { id: true, username: true, email: true } } }
+      include: {
+        author: { select: { id: true, username: true, email: true } },
+      },
     });
     if (!plugin) throw new Error("Plugin not found");
 
-    const { decision, comment, codeClean, noBackdoor, rulesOk, versionId } = data;
+    const { decision, comment, codeClean, noBackdoor, rulesOk, versionId } =
+      data;
     if (!decision) throw new Error("decision is required");
 
     const review = await prisma.review.create({
       data: {
-        decision, comment: comment || null, codeClean: codeClean ?? null,
-        noBackdoor: noBackdoor ?? null, rulesOk: rulesOk ?? null,
-        reviewerId, pluginId: plugin.id,
+        decision,
+        comment: comment || null,
+        codeClean: codeClean ?? null,
+        noBackdoor: noBackdoor ?? null,
+        rulesOk: rulesOk ?? null,
+        reviewerId,
+        pluginId: plugin.id,
       },
       include: { reviewer: { select: { username: true, avatarUrl: true } } },
     });
 
     if (versionId) {
-      const newVersionStatus = decision === "APPROVED" ? "APPROVED" : decision === "REJECTED" ? "REJECTED" : "PENDING";
-      await prisma.version.update({ where: { id: versionId }, data: { status: newVersionStatus } });
+      const newVersionStatus =
+        decision === "APPROVED"
+          ? "APPROVED"
+          : decision === "REJECTED"
+            ? "REJECTED"
+            : "PENDING";
+      await prisma.version.update({
+        where: { id: versionId },
+        data: { status: newVersionStatus },
+      });
     } else {
       let newPluginStatus: string;
       if (decision === "APPROVED") newPluginStatus = "APPROVED";
       else if (decision === "REJECTED") {
-        const approvedVersionCount = await prisma.version.count({ where: { pluginId: plugin.id, status: "APPROVED" } });
+        const approvedVersionCount = await prisma.version.count({
+          where: { pluginId: plugin.id, status: "APPROVED" },
+        });
         newPluginStatus = approvedVersionCount > 0 ? "APPROVED" : "REJECTED";
       } else newPluginStatus = "PENDING_REVIEW";
 
@@ -60,32 +77,54 @@ export class ReviewsService {
         data: {
           status: newPluginStatus as any,
           ...(decision === "REJECTED" && { reviewBuildId: null }),
-        }
+        },
       });
 
       // Find the pending version to update (not just any latest version)
-      const latestVersion = await prisma.version.findFirst({
-        where: { pluginId: plugin.id, status: "PENDING" },
-        orderBy: { createdAt: 'desc' }
-      }) || await prisma.version.findFirst({
-        where: { pluginId: plugin.id },
-        orderBy: { createdAt: 'desc' }
-      });
+      const latestVersion =
+        (await prisma.version.findFirst({
+          where: { pluginId: plugin.id, status: "PENDING" },
+          orderBy: { createdAt: "desc" },
+        })) ||
+        (await prisma.version.findFirst({
+          where: { pluginId: plugin.id },
+          orderBy: { createdAt: "desc" },
+        }));
 
       if (latestVersion) {
-        const newVersionStatus = decision === "APPROVED" ? "APPROVED" : decision === "REJECTED" ? "REJECTED" : "PENDING";
-        
+        const newVersionStatus =
+          decision === "APPROVED"
+            ? "APPROVED"
+            : decision === "REJECTED"
+              ? "REJECTED"
+              : "PENDING";
+
         if (latestVersion.status === newVersionStatus) {
-          throw new Error(`This version is already marked as ${newVersionStatus}`);
+          throw new Error(
+            `This version is already marked as ${newVersionStatus}`,
+          );
         }
 
-        await prisma.version.update({ where: { id: latestVersion.id }, data: { status: newVersionStatus } });
+        await prisma.version.update({
+          where: { id: latestVersion.id },
+          data: { status: newVersionStatus },
+        });
 
         if (newVersionStatus === "APPROVED") {
-          const fullPlugin = await prisma.plugin.findUnique({ where: { id: plugin.id }, include: { author: true } });
-          const fullVersion = await prisma.version.findUnique({ where: { id: latestVersion.id }, include: { producers: true } });
+          const fullPlugin = await prisma.plugin.findUnique({
+            where: { id: plugin.id },
+            include: { author: true },
+          });
+          const fullVersion = await prisma.version.findUnique({
+            where: { id: latestVersion.id },
+            include: { producers: true },
+          });
           if (fullPlugin && fullVersion && review.reviewer?.username) {
-            await sendPluginApprovedWebhook(fullPlugin, fullVersion, review.reviewer.username);
+            await sendPluginApprovedWebhook(
+              fullPlugin,
+              fullVersion,
+              review.reviewer.username,
+            );
           }
         }
 
@@ -94,15 +133,23 @@ export class ReviewsService {
         const authorUsername = plugin.author?.username || "Developer";
 
         // Post comment to GitHub commit (independent of email)
-        if (decision === "REJECTED" && plugin.repoUrl && latestVersion.fileHash) {
+        if (
+          decision === "REJECTED" &&
+          plugin.repoUrl &&
+          latestVersion.fileHash
+        ) {
           try {
-            const match = plugin.repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+            const match = plugin.repoUrl.match(
+              /github\.com\/([^\/]+)\/([^\/]+)/,
+            );
             if (match) {
               const owner = match[1];
-              const repo = match[2].replace(/\.git$/, '').replace(/\/$/, '');
+              const repo = match[2].replace(/\.git$/, "").replace(/\/$/, "");
               // Use reviewer's token (admin has write access)
               const token = await githubService.getAccessToken(reviewerId);
-              console.log(`[GitHub] Attempting commit comment: owner=${owner}, repo=${repo}, commit=${latestVersion.fileHash}, hasToken=${!!token}`);
+              console.log(
+                `[GitHub] Attempting commit comment: owner=${owner}, repo=${repo}, commit=${latestVersion.fileHash}, hasToken=${!!token}`,
+              );
               if (token) {
                 const pluginUrl = `https://endgit.dev/plugins/${plugin.slug}`;
                 const commentBody = `Dear @${authorUsername},
@@ -117,41 +164,62 @@ View plugin: ${pluginUrl}
 
 — Reviewed by @${reviewerUsername}
 EndGit (https://endgit.dev)`;
-                const ghRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits/${latestVersion.fileHash}/comments`, {
-                  method: "POST",
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                    Accept: "application/vnd.github.v3+json",
-                    "User-Agent": "EndGit-CI",
-                    "Content-Type": "application/json"
+                const ghRes = await fetch(
+                  `https://api.github.com/repos/${owner}/${repo}/commits/${latestVersion.fileHash}/comments`,
+                  {
+                    method: "POST",
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                      Accept: "application/vnd.github.v3+json",
+                      "User-Agent": "EndGit-CI",
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ body: commentBody }),
                   },
-                  body: JSON.stringify({ body: commentBody })
-                });
+                );
                 if (!ghRes.ok) {
                   const errBody = await ghRes.text();
-                  console.error(`[GitHub] Commit comment failed (${ghRes.status}):`, errBody);
+                  console.error(
+                    `[GitHub] Commit comment failed (${ghRes.status}):`,
+                    errBody,
+                  );
                 } else {
-                  console.log(`[GitHub] ✅ Commit comment posted on ${owner}/${repo}@${latestVersion.fileHash}`);
+                  console.log(
+                    `[GitHub] ✅ Commit comment posted on ${owner}/${repo}@${latestVersion.fileHash}`,
+                  );
                 }
               }
             }
           } catch (e) {
-            console.error("[GitHub] Failed to post commit comment for rejection:", e);
+            console.error(
+              "[GitHub] Failed to post commit comment for rejection:",
+              e,
+            );
           }
         }
 
         if (authorEmail) {
           if (decision === "REJECTED") {
             await sendRejectionEmail({
-              to: authorEmail, authorUsername, pluginName: plugin.displayName,
-              pluginSlug: plugin.slug, version: latestVersion.version,
-              submittedAt: latestVersion.createdAt.toISOString(), reviewerUsername,
-              reason: comment || "Your plugin did not meet the submission requirements.",
+              to: authorEmail,
+              authorUsername,
+              pluginName: plugin.displayName,
+              pluginSlug: plugin.slug,
+              version: latestVersion.version,
+              submittedAt: latestVersion.createdAt.toISOString(),
+              reviewerUsername,
+              reason:
+                comment ||
+                "Your plugin did not meet the submission requirements.",
             });
           } else if (decision === "APPROVED") {
             await sendApprovalEmail({
-              to: authorEmail, authorUsername, pluginName: plugin.displayName,
-              pluginSlug: plugin.slug, version: latestVersion.version, reviewerUsername,
+              to: authorEmail,
+              authorUsername,
+              pluginName: plugin.displayName,
+              pluginSlug: plugin.slug,
+              version: latestVersion.version,
+              reviewerUsername,
             });
           }
         }
@@ -163,12 +231,25 @@ EndGit (https://endgit.dev)`;
   async getReviewQueue() {
     return await prisma.plugin.findMany({
       where: {
-        OR: [{ status: "PENDING_REVIEW" }, { versions: { some: { status: "PENDING" } } }]
+        OR: [
+          { status: "PENDING_REVIEW" },
+          { versions: { some: { status: "PENDING" } } },
+        ],
       },
       orderBy: { createdAt: "asc" },
       include: {
         author: { select: { username: true, avatarUrl: true } },
-        versions: { orderBy: { createdAt: "desc" }, take: 1, select: { version: true, fileHash: true, status: true, createdAt: true } },
+        versions: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: {
+            version: true,
+            fileHash: true,
+            status: true,
+            createdAt: true,
+            isPreRelease: true,
+          },
+        },
       },
     });
   }

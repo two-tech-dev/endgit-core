@@ -4,55 +4,105 @@ export class SubmitService {
   async submitBuild(buildId: string, data: any, userId: string) {
     const build = await prisma.build.findUnique({
       where: { id: buildId },
-      include: { plugin: { select: { id: true, authorId: true, status: true, name: true, slug: true, displayName: true, description: true, iconUrl: true, repoUrl: true, reviewBuildId: true, author: { select: { username: true } } } } }
+      include: {
+        plugin: {
+          select: {
+            id: true,
+            authorId: true,
+            status: true,
+            name: true,
+            slug: true,
+            displayName: true,
+            description: true,
+            iconUrl: true,
+            repoUrl: true,
+            reviewBuildId: true,
+            author: { select: { username: true } },
+          },
+        },
+      },
     });
 
     if (!build) throw new Error("Build not found");
-    if (build.plugin.authorId !== userId) throw new Error("You can only submit your own builds");
-    if (build.status !== "SUCCESS") throw new Error("Only successful builds can be submitted for review");
+    if (build.plugin.authorId !== userId)
+      throw new Error("You can only submit your own builds");
+    if (build.status !== "SUCCESS")
+      throw new Error("Only successful builds can be submitted for review");
 
     if (!data.isDraft) {
       const hasPendingVersion = await prisma.version.findFirst({
-        where: { pluginId: build.pluginId, status: "PENDING" }
+        where: { pluginId: build.pluginId, status: "PENDING" },
       });
 
       if (hasPendingVersion && build.plugin.reviewBuildId !== build.id) {
-        throw new Error("A version is currently pending review. Please wait for it to be approved or rejected.");
+        throw new Error(
+          "A version is currently pending review. Please wait for it to be approved or rejected.",
+        );
       }
 
-      if (build.plugin.status === "PENDING_REVIEW" && build.plugin.reviewBuildId !== build.id) {
-        throw new Error("A version is currently pending review. Please wait for it to be approved or rejected.");
+      if (
+        build.plugin.status === "PENDING_REVIEW" &&
+        build.plugin.reviewBuildId !== build.id
+      ) {
+        throw new Error(
+          "A version is currently pending review. Please wait for it to be approved or rejected.",
+        );
       }
     }
 
     if (!data.isDraft) {
       const latestRelease = await prisma.build.findFirst({
         where: { pluginId: build.pluginId, isRelease: true },
-        orderBy: { buildNumber: "desc" }
+        orderBy: { buildNumber: "desc" },
       });
 
-      if (latestRelease && build.id !== latestRelease.id && build.buildNumber <= latestRelease.buildNumber) {
-        throw new Error(`You cannot submit a build older than or equal to the latest submitted build (#${latestRelease.buildNumber}).`);
+      if (
+        latestRelease &&
+        build.id !== latestRelease.id &&
+        build.buildNumber <= latestRelease.buildNumber
+      ) {
+        throw new Error(
+          `You cannot submit a build older than or equal to the latest submitted build (#${latestRelease.buildNumber}).`,
+        );
       }
     }
 
-    const { version, displayName, description, longDescription, tags, keywords, license, iconPath, producers, changelog, supportedApis, isDraft } = data;
+    const {
+      version,
+      displayName,
+      description,
+      longDescription,
+      tags,
+      keywords,
+      license,
+      iconPath,
+      producers,
+      changelog,
+      supportedApis,
+      isDraft,
+      isPreRelease,
+    } = data;
 
-    if (!version || !displayName) throw new Error("Version and Display Name are required");
+    if (!version || !displayName)
+      throw new Error("Version and Display Name are required");
 
     const existingVersion = await prisma.version.findFirst({
-      where: { pluginId: build.plugin.id, version }
+      where: { pluginId: build.plugin.id, version },
     });
 
     if (existingVersion && existingVersion.status !== "REJECTED") {
-      throw new Error(`Version ${version} already exists and is not rejected. Please increment your version number.`);
+      throw new Error(
+        `Version ${version} already exists and is not rejected. Please increment your version number.`,
+      );
     }
 
     if (!producers || !Array.isArray(producers) || producers.length === 0) {
       throw new Error("At least one producer is required");
     }
-    
-    const uniqueUsernames = new Set(producers.map(p => p.githubUser.trim().toLowerCase()));
+
+    const uniqueUsernames = new Set(
+      producers.map((p) => p.githubUser.trim().toLowerCase()),
+    );
     if (uniqueUsernames.size !== producers.length) {
       throw new Error("Duplicate producer usernames are not allowed");
     }
@@ -72,17 +122,25 @@ export class SubmitService {
 
     let processedTags: string[] = [];
     if (tags && typeof tags === "string") {
-      processedTags = tags.split(",").map(t => t.replace(/<[^>]*>?/gm, '').trim()).filter(Boolean);
+      processedTags = tags
+        .split(",")
+        .map((t) => t.replace(/<[^>]*>?/gm, "").trim())
+        .filter(Boolean);
     }
 
     let processedKeywords: string[] = [];
     if (keywords && typeof keywords === "string") {
-      processedKeywords = keywords.split(",").map(k => k.replace(/<[^>]*>?/gm, '').trim()).filter(Boolean);
+      processedKeywords = keywords
+        .split(",")
+        .map((k) => k.replace(/<[^>]*>?/gm, "").trim())
+        .filter(Boolean);
     }
 
     let iconUrl = build.plugin.iconUrl;
     if (build.plugin.repoUrl) {
-      const repoPath = build.plugin.repoUrl.replace("https://github.com/", "").replace(/\/$/, "");
+      const repoPath = build.plugin.repoUrl
+        .replace("https://github.com/", "")
+        .replace(/\/$/, "");
       const commit = build.commitHash || "main";
       const path = iconPath ? iconPath.replace(/^\//, "") : "icon.png";
       iconUrl = `https://raw.githubusercontent.com/${repoPath}/${commit}/${path}`;
@@ -93,16 +151,22 @@ export class SubmitService {
         // Save as draft: cancel the pending review
         // Delete any PENDING version for this plugin
         const pendingVersion = await tx.version.findFirst({
-          where: { pluginId: build.pluginId, status: "PENDING" }
+          where: { pluginId: build.pluginId, status: "PENDING" },
         });
         if (pendingVersion) {
-          await tx.producer.deleteMany({ where: { versionId: pendingVersion.id } });
+          await tx.producer.deleteMany({
+            where: { versionId: pendingVersion.id },
+          });
           await tx.version.delete({ where: { id: pendingVersion.id } });
         }
 
         // Reset plugin review state
-        const existingPlugin = await tx.plugin.findUnique({ where: { id: build.plugin.id } });
-        const approvedVersionCount = await tx.version.count({ where: { pluginId: build.pluginId, status: "APPROVED" } });
+        const existingPlugin = await tx.plugin.findUnique({
+          where: { id: build.plugin.id },
+        });
+        const approvedVersionCount = await tx.version.count({
+          where: { pluginId: build.pluginId, status: "APPROVED" },
+        });
         const newStatus = approvedVersionCount > 0 ? "APPROVED" : "DRAFT";
 
         await tx.plugin.update({
@@ -110,18 +174,21 @@ export class SubmitService {
           data: {
             status: newStatus as any,
             reviewBuildId: null,
-          }
+          },
         });
 
         // Unmark the build as release
         await tx.build.update({
           where: { id: build.id },
-          data: { isRelease: false }
+          data: { isRelease: false },
         });
       } else {
         // Normal submit for review
-        const existingPlugin = await tx.plugin.findUnique({ where: { id: build.plugin.id } });
-        const newStatus = existingPlugin?.status === "APPROVED" ? "APPROVED" : "PENDING_REVIEW";
+        const existingPlugin = await tx.plugin.findUnique({
+          where: { id: build.plugin.id },
+        });
+        const newStatus =
+          existingPlugin?.status === "APPROVED" ? "APPROVED" : "PENDING_REVIEW";
 
         await tx.plugin.update({
           where: { id: build.plugin.id },
@@ -136,70 +203,123 @@ export class SubmitService {
             keywords: processedKeywords,
             license: license || "",
             iconUrl,
-          }
+          },
         });
 
         let versionFileUrl = build.artifactUrl || "";
-        let versionFileName = build.artifactUrl ? decodeURIComponent(build.artifactUrl).split('/').pop()! : `build-${build.buildNumber}.zip`;
+        let versionFileName = build.artifactUrl
+          ? decodeURIComponent(build.artifactUrl).split("/").pop()!
+          : `build-${build.buildNumber}.zip`;
         let versionFileSize = build.artifactSize || 0;
 
-        const pluginFull = await tx.plugin.findUnique({ where: { id: build.plugin.id }, select: { pluginType: true } });
+        const pluginFull = await tx.plugin.findUnique({
+          where: { id: build.plugin.id },
+          select: { pluginType: true },
+        });
         if (pluginFull?.pluginType === "CPP") {
-          versionFileUrl = JSON.stringify({ linux: build.artifactUrlLinux, win: build.artifactUrlWin });
+          versionFileUrl = JSON.stringify({
+            linux: build.artifactUrlLinux,
+            win: build.artifactUrlWin,
+          });
           versionFileName = `plugin-${version}-cpp`;
-          versionFileSize = (build.artifactSizeLinux || 0) + (build.artifactSizeWin || 0);
+          versionFileSize =
+            (build.artifactSizeLinux || 0) + (build.artifactSizeWin || 0);
         }
 
         if (existingVersion) {
-          await tx.producer.deleteMany({ where: { versionId: existingVersion.id } });
+          await tx.producer.deleteMany({
+            where: { versionId: existingVersion.id },
+          });
           await tx.version.update({
             where: { id: existingVersion.id },
             data: {
-              fileUrl: versionFileUrl, fileName: versionFileName, fileSize: versionFileSize, fileHash: build.commitHash || "",
-              status: "PENDING", changelog: changelog || data.notes || "", longDescription: longDescription || "",
-              supportedApis: Array.isArray(supportedApis) ? supportedApis : [], isLatest: true, createdAt: new Date(),
-              producers: { create: producers.map((p: any) => ({ githubUser: p.githubUser.trim(), role: p.role })) }
-            }
+              fileUrl: versionFileUrl,
+              fileName: versionFileName,
+              fileSize: versionFileSize,
+              fileHash: build.commitHash || "",
+              status: "PENDING",
+              changelog: changelog || data.notes || "",
+              longDescription: longDescription || "",
+              supportedApis: Array.isArray(supportedApis) ? supportedApis : [],
+              isLatest: true,
+              isPreRelease: isPreRelease || false,
+              createdAt: new Date(),
+              producers: {
+                create: producers.map((p: any) => ({
+                  githubUser: p.githubUser.trim(),
+                  role: p.role,
+                })),
+              },
+            },
           });
         } else {
           await tx.version.create({
             data: {
-              pluginId: build.plugin.id, version, fileUrl: versionFileUrl, fileName: versionFileName, fileSize: versionFileSize,
-              fileHash: build.commitHash || "", status: "PENDING", changelog: changelog || data.notes || "",
-              longDescription: longDescription || "", supportedApis: Array.isArray(supportedApis) ? supportedApis : [], isLatest: true,
-              producers: { create: producers.map((p: any) => ({ githubUser: p.githubUser.trim(), role: p.role })) }
-            }
+              pluginId: build.plugin.id,
+              version,
+              fileUrl: versionFileUrl,
+              fileName: versionFileName,
+              fileSize: versionFileSize,
+              fileHash: build.commitHash || "",
+              status: "PENDING",
+              changelog: changelog || data.notes || "",
+              longDescription: longDescription || "",
+              supportedApis: Array.isArray(supportedApis) ? supportedApis : [],
+              isLatest: true,
+              isPreRelease: isPreRelease || false,
+              producers: {
+                create: producers.map((p: any) => ({
+                  githubUser: p.githubUser.trim(),
+                  role: p.role,
+                })),
+              },
+            },
           });
         }
 
         await tx.build.update({
           where: { id: build.id },
-          data: { isRelease: true }
+          data: { isRelease: true },
         });
       }
     });
 
     if (!data.isDraft && build.plugin) {
       const authorUsername = build.plugin.author?.username || "Unknown";
-      import("../../utils/discord").then(m => {
-        m.sendPluginSubmittedWebhook(build.plugin, version, authorUsername).catch(e => console.error(e));
+      import("../../utils/discord").then((m) => {
+        m.sendPluginSubmittedWebhook(
+          build.plugin,
+          version,
+          authorUsername,
+        ).catch((e) => console.error(e));
       });
     }
 
-    return { pluginId: build.plugin.id, buildId: build.id, buildNumber: build.buildNumber };
+    return {
+      pluginId: build.plugin.id,
+      buildId: build.id,
+      buildNumber: build.buildNumber,
+    };
   }
 
   async getStatus(pluginSlug: string) {
     const plugin = await prisma.plugin.findUnique({
       where: { slug: pluginSlug },
       select: {
-        id: true, status: true, reviewBuildId: true,
+        id: true,
+        status: true,
+        reviewBuildId: true,
         reviews: {
           orderBy: { createdAt: "desc" },
           take: 1,
-          select: { decision: true, comment: true, createdAt: true, reviewer: { select: { username: true } } }
-        }
-      }
+          select: {
+            decision: true,
+            comment: true,
+            createdAt: true,
+            reviewer: { select: { username: true } },
+          },
+        },
+      },
     });
 
     if (!plugin) throw new Error("Plugin not found");
@@ -207,7 +327,7 @@ export class SubmitService {
     return {
       status: plugin.status,
       reviewBuildId: plugin.reviewBuildId,
-      latestReview: plugin.reviews[0] || null
+      latestReview: plugin.reviews[0] || null,
     };
   }
 }
