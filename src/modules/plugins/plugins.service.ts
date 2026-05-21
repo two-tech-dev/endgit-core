@@ -250,6 +250,14 @@ export class PluginsService {
             supportedApis: true,
             fileHash: true,
             producers: { select: { githubUser: true, role: true } },
+            vtScanId: true,
+            vtStatus: true,
+            vtMalicious: true,
+            vtSuspicious: true,
+            vtUndetected: true,
+            vtTotal: true,
+            vtPermalink: true,
+            vtScanDate: true,
           },
         },
         ratings: { select: { score: true } },
@@ -294,9 +302,26 @@ export class PluginsService {
       visibleVersions[0]?.version ||
       null;
 
+    const versionsWithVT = visibleVersions.map((v: any) => {
+      const { vtScanId, vtStatus, vtMalicious, vtSuspicious, vtUndetected, vtTotal, vtPermalink, vtScanDate, ...rest } = v;
+      return {
+        ...rest,
+        virustotal: {
+          scanId: vtScanId,
+          status: vtStatus,
+          malicious: vtMalicious,
+          suspicious: vtSuspicious,
+          undetected: vtUndetected,
+          total: vtTotal,
+          permalink: vtPermalink,
+          scanDate: vtScanDate,
+        },
+      };
+    });
+
     return {
       ...plugin,
-      versions: visibleVersions,
+      versions: versionsWithVT,
       ratings: undefined,
       averageRating: Math.round(averageRating * 10) / 10,
       totalRatings,

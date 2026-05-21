@@ -1,4 +1,16 @@
 import { prisma } from "@endgit/database";
+import { Queue } from "bullmq";
+import IORedis from "ioredis";
+
+const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+const vtConnection = new IORedis(REDIS_URL, {
+  maxRetriesPerRequest: null,
+  family: 4,
+  tls: REDIS_URL.startsWith("rediss://")
+    ? { rejectUnauthorized: false }
+    : undefined,
+});
+const vtQueue = new Queue("vt-scans", { connection: vtConnection });
 
 export class SubmitService {
   async submitBuild(buildId: string, data: any, userId: string) {
@@ -146,6 +158,10 @@ export class SubmitService {
       iconUrl = `https://raw.githubusercontent.com/${repoPath}/${commit}/${path}`;
     }
 
+    let vtVersionId: string | null = null;
+    let vtVersionFileUrl: string | null = null;
+    let vtPluginType: string | null = null;
+
     await prisma.$transaction(async (tx) => {
       if (isDraft) {
         // Save as draft: cancel the pending review
@@ -244,6 +260,14 @@ export class SubmitService {
               isLatest: true,
               isPreRelease: isPreRelease || false,
               createdAt: new Date(),
+              vtStatus: "queued",
+              vtScanId: null,
+              vtMalicious: null,
+              vtSuspicious: null,
+              vtUndetected: null,
+              vtTotal: null,
+              vtPermalink: null,
+              vtScanDate: null,
               producers: {
                 create: producers.map((p: any) => ({
                   githubUser: p.githubUser.trim(),
@@ -252,8 +276,9 @@ export class SubmitService {
               },
             },
           });
+          vtVersionId = existingVersion.id;
         } else {
-          await tx.version.create({
+          const created = await tx.version.create({
             data: {
               pluginId: build.plugin.id,
               version,
@@ -267,6 +292,7 @@ export class SubmitService {
               supportedApis: Array.isArray(supportedApis) ? supportedApis : [],
               isLatest: true,
               isPreRelease: isPreRelease || false,
+              vtStatus: "queued",
               producers: {
                 create: producers.map((p: any) => ({
                   githubUser: p.githubUser.trim(),
@@ -275,7 +301,11 @@ export class SubmitService {
               },
             },
           });
+          vtVersionId = created.id;
         }
+
+        vtVersionFileUrl = versionFileUrl;
+        vtPluginType = pluginFull?.pluginType || null;
 
         await tx.build.update({
           where: { id: build.id },
@@ -283,6 +313,25 @@ export class SubmitService {
         });
       }
     });
+
+    if (!data.isDraft && vtVersionId && vtVersionFileUrl) {
+      const artifactKeys: string[] = [];
+      if (vtPluginType === "CPP") {
+        const parsed = JSON.parse(vtVersionFileUrl);
+        if (parsed.linux) artifactKeys.push(parsed.linux);
+        if (parsed.win) artifactKeys.push(parsed.win);
+      } else {
+        artifactKeys.push(vtVersionFileUrl);
+      }
+
+      vtQueue
+        .add("scan", {
+          versionId: vtVersionId,
+          pluginSlug: build.plugin.slug,
+          artifactKeys,
+        })
+        .catch((e) => console.error("[VT] Failed to enqueue scan:", e.message));
+    }
 
     if (!data.isDraft && build.plugin) {
       const authorUsername = build.plugin.author?.username || "Unknown";
