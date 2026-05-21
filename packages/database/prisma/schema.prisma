@@ -194,6 +194,15 @@ model Version {
   statusReason  String?       @db.Text // Reason for REJECTED status
   createdAt     DateTime      @default(now())
 
+  vtScanId     String?
+  vtStatus     String?    // "queued" | "scanning" | "completed" | "failed"
+  vtMalicious  Int?
+  vtSuspicious Int?
+  vtUndetected Int?
+  vtTotal      Int?
+  vtPermalink  String?
+  vtScanDate   DateTime?
+
   pluginId     String
   plugin       Plugin       @relation(fields: [pluginId], references: [id], onDelete: Cascade)
   dependencies Dependency[]
