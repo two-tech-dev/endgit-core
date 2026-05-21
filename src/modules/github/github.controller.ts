@@ -1,9 +1,9 @@
 import { Response } from "express";
 import { AuthRequest } from "../../middleware/auth";
 import { githubService } from "./github.service";
+import { cacheGet, cacheSet } from "../../lib/cache";
 
-const reposCache = new Map<string, { data: any; expiresAt: number }>();
-const REPOS_CACHE_TTL_MS = 30_000;
+const REPOS_CACHE_TTL = 30;
 
 export class GithubController {
   async getOrgs(req: AuthRequest, res: Response) {
@@ -22,17 +22,17 @@ export class GithubController {
       const perPage = parseInt(req.query.per_page as string) || 30;
       const org = req.query.org as string | undefined;
 
-      const cacheKey = `${req.user!.id}:${page}:${perPage}:${org || ""}`;
-      const cached = reposCache.get(cacheKey);
-      if (cached && cached.expiresAt > Date.now()) {
+      const cacheKey = `gh:repos:${req.user!.id}:${page}:${perPage}:${org || ""}`;
+      const cached = await cacheGet<any>(cacheKey);
+      if (cached) {
         res.set("Cache-Control", "private, max-age=30");
-        return res.json(cached.data);
+        return res.json(cached);
       }
 
       const { repos, hasMore, totalCount, totalEnabled, totalDisabled } = await githubService.getUserRepos(req.user!.id, page, perPage, org);
       
       const payload = { success: true, data: repos, pagination: { hasMore, page, perPage, totalCount, totalEnabled, totalDisabled } };
-      reposCache.set(cacheKey, { data: payload, expiresAt: Date.now() + REPOS_CACHE_TTL_MS });
+      await cacheSet(cacheKey, payload, REPOS_CACHE_TTL);
 
       res.set("Cache-Control", "private, max-age=30");
       res.json(payload);

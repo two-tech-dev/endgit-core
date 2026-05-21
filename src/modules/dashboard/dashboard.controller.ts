@@ -1,23 +1,23 @@
 import { Response } from "express";
 import { AuthRequest } from "../../middleware/auth";
 import { dashboardService } from "./dashboard.service";
+import { cacheGet, cacheSet } from "../../lib/cache";
 
-const statusCache = new Map<string, { data: any; expiresAt: number }>();
-const STATUS_CACHE_TTL_MS = 30_000;
+const STATUS_CACHE_TTL = 30;
 
 export class DashboardController {
   async getStatus(req: AuthRequest, res: Response) {
     try {
-      const cacheKey = req.user!.id;
-      const cached = statusCache.get(cacheKey);
-      if (cached && cached.expiresAt > Date.now()) {
+      const cacheKey = `dashboard:status:${req.user!.id}`;
+      const cached = await cacheGet<any>(cacheKey);
+      if (cached) {
         res.set("Cache-Control", "private, max-age=30");
-        return res.json(cached.data);
+        return res.json(cached);
       }
 
       const data = await dashboardService.getStatus(req.user!.id);
       const payload = { success: true, data };
-      statusCache.set(cacheKey, { data: payload, expiresAt: Date.now() + STATUS_CACHE_TTL_MS });
+      await cacheSet(cacheKey, payload, STATUS_CACHE_TTL);
 
       res.set("Cache-Control", "private, max-age=30");
       res.json(payload);

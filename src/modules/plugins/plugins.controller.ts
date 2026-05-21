@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
 import { AuthRequest } from "../../middleware/auth";
 import { pluginsService } from "./plugins.service";
+import { cacheGet, cacheSet } from "../../lib/cache";
 
-const latestCache = new Map<string, { data: any; expiresAt: number }>();
-const LATEST_CACHE_TTL_MS = 30_000;
+const LATEST_CACHE_TTL = 30;
 
 export class PluginsController {
   async listPlugins(req: Request, res: Response) {
@@ -47,12 +47,12 @@ export class PluginsController {
     try {
       const page = req.query.page || "1";
       const pageSize = req.query.pageSize || "12";
-      const cacheKey = `${page}:${pageSize}`;
+      const cacheKey = `plugins:latest:${page}:${pageSize}`;
 
-      const cached = latestCache.get(cacheKey);
-      if (cached && cached.expiresAt > Date.now()) {
+      const cached = await cacheGet<any>(cacheKey);
+      if (cached) {
         res.set("Cache-Control", "public, max-age=30");
-        return res.json(cached.data);
+        return res.json(cached);
       }
 
       const data = await pluginsService.getLatest(req.query);
@@ -62,7 +62,7 @@ export class PluginsController {
         pagination: { page: data.page, pageSize: data.pageSize, total: data.total, totalPages: data.totalPages },
       };
 
-      latestCache.set(cacheKey, { data: payload, expiresAt: Date.now() + LATEST_CACHE_TTL_MS });
+      await cacheSet(cacheKey, payload, LATEST_CACHE_TTL);
       res.set("Cache-Control", "public, max-age=30");
       res.json(payload);
     } catch (error: any) {
