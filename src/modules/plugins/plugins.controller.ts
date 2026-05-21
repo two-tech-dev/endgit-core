@@ -2,6 +2,9 @@ import { Request, Response } from "express";
 import { AuthRequest } from "../../middleware/auth";
 import { pluginsService } from "./plugins.service";
 
+const latestCache = new Map<string, { data: any; expiresAt: number }>();
+const LATEST_CACHE_TTL_MS = 30_000;
+
 export class PluginsController {
   async listPlugins(req: Request, res: Response) {
     try {
@@ -42,12 +45,26 @@ export class PluginsController {
 
   async getLatest(req: Request, res: Response) {
     try {
+      const page = req.query.page || "1";
+      const pageSize = req.query.pageSize || "12";
+      const cacheKey = `${page}:${pageSize}`;
+
+      const cached = latestCache.get(cacheKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        res.set("Cache-Control", "public, max-age=30");
+        return res.json(cached.data);
+      }
+
       const data = await pluginsService.getLatest(req.query);
-      res.json({
+      const payload = {
         success: true,
         data: { plugins: data.plugins },
         pagination: { page: data.page, pageSize: data.pageSize, total: data.total, totalPages: data.totalPages },
-      });
+      };
+
+      latestCache.set(cacheKey, { data: payload, expiresAt: Date.now() + LATEST_CACHE_TTL_MS });
+      res.set("Cache-Control", "public, max-age=30");
+      res.json(payload);
     } catch (error: any) {
       res.status(500).json({ success: false, error: "Failed to get latest plugins" });
     }
