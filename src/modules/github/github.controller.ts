@@ -21,15 +21,16 @@ export class GithubController {
       const page = parseInt(req.query.page as string) || 1;
       const perPage = parseInt(req.query.per_page as string) || 30;
       const org = req.query.org as string | undefined;
+      const search = (req.query.search as string) || undefined;
 
-      const cacheKey = `gh:repos:${req.user!.id}:${page}:${perPage}:${org || ""}`;
+      const cacheKey = `gh:repos:${req.user!.id}:${page}:${perPage}:${org || ""}:${search || ""}`;
       const cached = await cacheGet<any>(cacheKey);
       if (cached) {
         res.set("Cache-Control", "private, max-age=30");
         return res.json(cached);
       }
 
-      const { repos, hasMore, totalCount, totalEnabled, totalDisabled } = await githubService.getUserRepos(req.user!.id, page, perPage, org);
+      const { repos, hasMore, totalCount, totalEnabled, totalDisabled } = await githubService.getUserRepos(req.user!.id, page, perPage, org, search);
       
       const payload = { success: true, data: repos, pagination: { hasMore, page, perPage, totalCount, totalEnabled, totalDisabled } };
       await cacheSet(cacheKey, payload, REPOS_CACHE_TTL);

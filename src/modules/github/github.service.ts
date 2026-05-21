@@ -115,51 +115,72 @@ export class GithubService {
     return orgs;
   }
 
-  async getUserRepos(userId: string, page: number, perPage: number, org?: string) {
+  async getUserRepos(userId: string, page: number, perPage: number, org?: string, search?: string) {
     const accessToken = await this.getAccessToken(userId);
     if (!accessToken) throw new Error("GitHub account not linked");
 
-    let ghRes: Response;
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/vnd.github.v3+json",
+      "User-Agent": "EndGit-CI"
+    };
 
-    if (org) {
-      ghRes = await fetch(`https://api.github.com/orgs/${encodeURIComponent(org)}/repos?sort=updated&per_page=${perPage}&page=${page}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/vnd.github.v3+json",
-          "User-Agent": "EndGit-CI"
-        }
-      });
-    } else {
-      ghRes = await fetch(`https://api.github.com/user/repos?sort=updated&per_page=${perPage}&page=${page}&affiliation=owner,collaborator,organization_member`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/vnd.github.v3+json",
-          "User-Agent": "EndGit-CI"
-        }
-      });
-    }
-
-    if (!ghRes.ok) throw new Error("Failed to fetch from GitHub");
-
+    let ghRepos: any[];
     let hasMore = false;
     let totalCount = 0;
-    const linkHeader = ghRes.headers.get("link");
-    if (linkHeader && linkHeader.includes('rel="next"')) hasMore = true;
 
-    const ghRepos = await ghRes.json() as any[];
-
-    if (linkHeader) {
-      const lastMatch = linkHeader.match(/[?&]page=(\d+)[^>]*>;\s*rel="last"/);
-      if (lastMatch) {
-        const lastPage = parseInt(lastMatch[1], 10);
-        totalCount = lastPage * perPage;
+    if (search) {
+      ghRepos = [];
+      let p = 1;
+      while (true) {
+        const url = org
+          ? `https://api.github.com/orgs/${encodeURIComponent(org)}/repos?sort=updated&per_page=100&page=${p}`
+          : `https://api.github.com/user/repos?sort=updated&per_page=100&page=${p}&affiliation=owner,collaborator,organization_member`;
+        const res = await fetch(url, { headers });
+        if (!res.ok) throw new Error("Failed to fetch from GitHub");
+        const batch = await res.json() as any[];
+        ghRepos.push(...batch);
+        const linkHeader = res.headers.get("link");
+        if (!linkHeader || !linkHeader.includes('rel="next"')) break;
+        p++;
       }
-    }
 
-    if (!hasMore) {
-      totalCount = (page - 1) * perPage + ghRepos.length;
-    } else if (totalCount === 0) {
+      const searchLower = search.toLowerCase();
+      ghRepos = ghRepos.filter((r: any) => r.full_name.toLowerCase().includes(searchLower));
+
       totalCount = ghRepos.length;
+      const start = (page - 1) * perPage;
+      ghRepos = ghRepos.slice(start, start + perPage);
+      hasMore = start + perPage < totalCount;
+    } else {
+      let ghRes: Response;
+
+      if (org) {
+        ghRes = await fetch(`https://api.github.com/orgs/${encodeURIComponent(org)}/repos?sort=updated&per_page=${perPage}&page=${page}`, { headers });
+      } else {
+        ghRes = await fetch(`https://api.github.com/user/repos?sort=updated&per_page=${perPage}&page=${page}&affiliation=owner,collaborator,organization_member`, { headers });
+      }
+
+      if (!ghRes.ok) throw new Error("Failed to fetch from GitHub");
+
+      const linkHeader = ghRes.headers.get("link");
+      if (linkHeader && linkHeader.includes('rel="next"')) hasMore = true;
+
+      ghRepos = await ghRes.json() as any[];
+
+      if (linkHeader) {
+        const lastMatch = linkHeader.match(/[?&]page=(\d+)[^>]*>;\s*rel="last"/);
+        if (lastMatch) {
+          const lastPage = parseInt(lastMatch[1], 10);
+          totalCount = lastPage * perPage;
+        }
+      }
+
+      if (!hasMore) {
+        totalCount = (page - 1) * perPage + ghRepos.length;
+      } else if (totalCount === 0) {
+        totalCount = ghRepos.length;
+      }
     }
 
     const existingPlugins = await prisma.plugin.findMany({
