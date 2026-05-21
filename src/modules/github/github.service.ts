@@ -2,6 +2,7 @@ import { prisma } from "@endgit/database";
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
 import { requireSecret } from "../../lib/secrets";
+import { cacheGet, cacheSet } from "../../lib/cache";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 const connection = new IORedis(REDIS_URL, {
@@ -83,6 +84,10 @@ export class GithubService {
   }
 
   async getUserOrgs(userId: string) {
+    const cacheKey = `gh:orgs:${userId}`;
+    const cached = await cacheGet<any[]>(cacheKey);
+    if (cached) return cached;
+
     const accessToken = await this.getAccessToken(userId);
     if (!accessToken) throw new Error("GitHub account not linked");
 
@@ -98,13 +103,16 @@ export class GithubService {
 
     const ghOrgs = await ghRes.json() as any[];
 
-    return ghOrgs.map((org: any) => ({
+    const orgs = ghOrgs.map((org: any) => ({
       id: org.id,
       login: org.login,
       description: org.description,
       avatarUrl: org.avatar_url,
       url: `https://github.com/${org.login}`,
     }));
+
+    await cacheSet(cacheKey, orgs, 300);
+    return orgs;
   }
 
   async getUserRepos(userId: string, page: number, perPage: number, org?: string) {
@@ -394,6 +402,10 @@ export class GithubService {
   }
 
   async getRepoReadme(userId: string, owner: string, repo: string) {
+    const cacheKey = `gh:readme:${owner}/${repo}`;
+    const cached = await cacheGet<string>(cacheKey);
+    if (cached) return cached;
+
     const accessToken = await this.getAccessToken(userId);
     const headers: any = { Accept: "application/vnd.github.v3.raw", "User-Agent": "EndGit-CI" };
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
@@ -401,10 +413,16 @@ export class GithubService {
     const ghRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/readme`, { headers });
     if (!ghRes.ok) throw new Error("README not found");
 
-    return ghRes.text();
+    const text = await ghRes.text();
+    await cacheSet(cacheKey, text, 600);
+    return text;
   }
 
   async getRepoLicense(userId: string, owner: string, repo: string) {
+    const cacheKey = `gh:license:${owner}/${repo}`;
+    const cached = await cacheGet<any>(cacheKey);
+    if (cached) return cached;
+
     const accessToken = await this.getAccessToken(userId);
     const headers: any = { Accept: "application/vnd.github.v3+json", "User-Agent": "EndGit-CI" };
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
@@ -413,6 +431,7 @@ export class GithubService {
     if (!ghRes.ok) throw new Error("License not found");
 
     const data = await ghRes.json() as any;
+    await cacheSet(cacheKey, data.license, 600);
     return data.license;
   }
 }
