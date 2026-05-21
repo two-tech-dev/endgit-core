@@ -8,6 +8,8 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import { Worker } from "bullmq";
+import IORedis from "ioredis";
 import { publicRateLimit } from "./middleware/rateLimit";
 import { pluginsRouter } from "./modules/plugins/plugins.routes";
 import { versionsRouter } from "./modules/versions/versions.routes";
@@ -23,6 +25,7 @@ import { ratingRouter } from "./modules/ratings/ratings.routes";
 import { submitRouter } from "./modules/submit/submit.routes";
 import { webhookRouter } from "./modules/webhooks/webhooks.routes";
 import { callbackRouter } from "./modules/callback/callback.routes";
+import { virusTotalService } from "./modules/virustotal/virustotal.service";
 
 const app: express.Express = express();
 app.set("trust proxy", 1);
@@ -115,6 +118,32 @@ app.use((_req, res) => {
     success: false,
     error: "Not Found",
   });
+});
+
+// ── VirusTotal BullMQ Worker ─────────────────────────────
+
+const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+const vtConnection = new IORedis(REDIS_URL, {
+  maxRetriesPerRequest: null,
+  family: 4,
+  tls: REDIS_URL.startsWith("rediss://")
+    ? { rejectUnauthorized: false }
+    : undefined,
+});
+
+const vtWorker = new Worker(
+  "vt-scans",
+  async (job) => {
+    const { versionId, pluginSlug, artifactKeys } = job.data;
+    console.log(`[VT] Starting scan for version ${versionId} (${pluginSlug})`);
+    await virusTotalService.scanVersion(versionId, pluginSlug, artifactKeys);
+    console.log(`[VT] Scan complete for version ${versionId}`);
+  },
+  { connection: vtConnection, concurrency: 1 },
+);
+
+vtWorker.on("failed", (job, err) => {
+  console.error(`[VT] Job ${job?.id} failed:`, err.message);
 });
 
 // ── Start ────────────────────────────────────────────────
