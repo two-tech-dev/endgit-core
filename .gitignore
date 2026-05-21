@@ -9,6 +9,7 @@ dist/
 .env
 .env.local
 .env.production
+.env.dev
 
 # Database
 packages/database/prisma/migrations/
