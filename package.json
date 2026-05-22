@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "export DATABASE_URL=${AZURE_DATABASE_URL:-$DATABASE_URL} && npx prisma@5 generate --schema=packages/database/prisma/schema.prisma && npx prisma@5 db push --schema=packages/database/prisma/schema.prisma --accept-data-loss && tsx src/index.ts",
-    "heroku-postbuild": "echo 'Skipping prisma generate in build step to avoid Heroku pruning issues'",
+    "start": "export DATABASE_URL=${AZURE_DATABASE_URL:-$DATABASE_URL} && tsx src/index.ts",
+    "heroku-postbuild": "npx prisma generate --schema=packages/database/prisma/schema.prisma",
     "db:generate": "pnpm --filter @endgit/database generate",
     "db:push": "pnpm --filter @endgit/database push",
     "db:migrate": "pnpm --filter @endgit/database migrate",
