@@ -194,7 +194,6 @@ export class BuildsService {
       select: {
         logs: true,
         status: true,
-        safeScore: true,
         duration: true,
         finishedAt: true,
       },

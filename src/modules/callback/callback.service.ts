@@ -103,7 +103,6 @@ export class CallbackService {
         linuxBuildStatus: true,
         status: true,
         buildNumber: true,
-        safeScore: true,
         createdAt: true,
         pluginId: true,
         commitHash: true,
@@ -148,7 +147,6 @@ export class CallbackService {
     summary += `${"─".repeat(50)}\n`;
     summary += `🐧 Linux:   ${linuxOk ? "✅ SUCCESS" : "❌ FAILED"}\n`;
     summary += `🪟 Windows: ${winOk ? "✅ SUCCESS" : "❌ FAILED"}\n`;
-    summary += `🛡️ Safe Score: ${build.safeScore || 0}/100\n`;
     summary += `⏱️ Total time: ${duration}s\n`;
     summary += `${"═".repeat(50)}\n`;
 
@@ -189,11 +187,6 @@ export class CallbackService {
           fields: [
             { name: "🐧 Linux Build", value: linuxLink, inline: true },
             { name: "🪟 Windows Build", value: winLink, inline: true },
-            {
-              name: "🛡️ Security",
-              value: `Safe Score: **${build.safeScore || 0}/100**\n${(build.safeScore || 0) >= 80 ? "✅ Passed" : "⚠️ Warning"}`,
-              inline: false,
-            },
           ],
           footer: {
             text: "⚠️ This is a development build. Don't download it unless you are sure this plugin works!",

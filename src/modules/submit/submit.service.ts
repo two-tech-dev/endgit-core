@@ -211,7 +211,6 @@ export class SubmitService {
           data: {
             status: newStatus,
             reviewBuildId: build.id,
-            ...(build.safeScore !== null && { trustScore: build.safeScore }),
             displayName,
             description: description || build.plugin.name,
             longDescription: longDescription || "",

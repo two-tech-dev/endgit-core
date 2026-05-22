@@ -125,7 +125,7 @@ export class BuildsController {
             build.status === "CANCELLED"
           ) {
             res.write(
-              `data: ${JSON.stringify({ type: "finish", status: build.status, safeScore: build.safeScore, duration: build.duration })}\n\n`,
+              `data: ${JSON.stringify({ type: "finish", status: build.status, duration: build.duration })}\n\n`,
             );
             finished = true;
             res.end();
