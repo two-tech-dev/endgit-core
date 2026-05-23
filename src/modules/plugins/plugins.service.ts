@@ -1,4 +1,4 @@
-import { prisma } from "@endgit/database";
+import { prisma, Prisma } from "@endgit/database";
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
 
@@ -417,7 +417,7 @@ export class PluginsService {
         throw new Error("A plugin with this display name already exists");
     }
 
-    return await prisma.$transaction(async (tx) => {
+    return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const updatedPlugin = await tx.plugin.update({
         where: { slug },
         data: {

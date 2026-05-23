@@ -43,14 +43,14 @@ export class RatingsService {
 
     const total = ratings.length;
     const avg =
-      total > 0 ? ratings.reduce((sum, r) => sum + r.score, 0) / total : 0;
+      total > 0 ? ratings.reduce((sum: number, r: { score: number }) => sum + r.score, 0) / total : 0;
     const distribution = [1, 2, 3, 4, 5].map((star) => ({
       star,
-      count: ratings.filter((r) => r.score === star).length,
+      count: ratings.filter((r: { score: number }) => r.score === star).length,
       percentage:
         total > 0
           ? Math.round(
-              (ratings.filter((r) => r.score === star).length / total) * 100,
+              (ratings.filter((r: { score: number }) => r.score === star).length / total) * 100,
             )
           : 0,
     }));

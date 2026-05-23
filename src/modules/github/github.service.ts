@@ -234,10 +234,10 @@ export class GithubService {
       },
     });
 
-    const repoUrlMap = new Map(existingPlugins.map((p: any) => [p.repoUrl, p]));
+    const repoUrlMap = new Map(existingPlugins.map((p: any) => [p.repoUrl, p] as const));
 
     const repos = ghRepos.map((repo: any) => {
-      const linked = repoUrlMap.get(repo.html_url);
+      const linked = repoUrlMap.get(repo.html_url) as { webhookId?: string; id?: string; slug?: string; status?: string } | undefined;
       return {
         id: repo.id,
         name: repo.name,

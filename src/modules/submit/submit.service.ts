@@ -1,4 +1,4 @@
-import { prisma } from "@endgit/database";
+import { prisma, Prisma } from "@endgit/database";
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
 
@@ -162,7 +162,7 @@ export class SubmitService {
     let vtVersionFileUrl: string | null = null;
     let vtPluginType: string | null = null;
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       if (isDraft) {
         // Save as draft: cancel the pending review
         // Delete any PENDING version for this plugin
