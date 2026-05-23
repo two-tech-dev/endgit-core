@@ -100,7 +100,7 @@ app.use(
     res: express.Response,
     _next: express.NextFunction
   ) => {
-    console.error("❌ Error:", err.message);
+    console.error("Error:", err.message);
     res.status(err.status || 500).json({
       success: false,
       error: err.message || "Internal Server Error",
@@ -123,8 +123,8 @@ app.listen(PORT, () => {
   console.log(`
   ╔═══════════════════════════════════════════════════╗
   ║                                                   ║
-  ║   🚀 EndGit API Server                           ║
-  ║   Running on http://localhost:${PORT}              ║
+  ║   EndGit API Server                               ║
+  ║   Running on http://localhost:${PORT}             ║
   ║                                                   ║
   ╚═══════════════════════════════════════════════════╝
   `);
