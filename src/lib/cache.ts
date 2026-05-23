@@ -5,7 +5,9 @@ const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 const redis = new IORedis(REDIS_URL, {
   maxRetriesPerRequest: null,
   family: 4,
-  tls: REDIS_URL.startsWith("rediss://") ? { rejectUnauthorized: false } : undefined,
+  tls: REDIS_URL.startsWith("rediss://")
+    ? { rejectUnauthorized: false }
+    : undefined,
 });
 
 const PREFIX = "cache:";
@@ -20,7 +22,11 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
   }
 }
 
-export async function cacheSet(key: string, value: unknown, ttlSeconds: number): Promise<void> {
+export async function cacheSet(
+  key: string,
+  value: unknown,
+  ttlSeconds: number,
+): Promise<void> {
   await redis.set(`${PREFIX}${key}`, JSON.stringify(value), "EX", ttlSeconds);
 }
 

@@ -61,12 +61,10 @@ export class BuildsController {
         pagination: { page, pageSize: limit, total, totalPages },
       });
     } catch (error: any) {
-      res
-        .status(error.message === "Plugin not found" ? 404 : 500)
-        .json({
-          success: false,
-          error: error.message || "Failed to fetch builds",
-        });
+      res.status(error.message === "Plugin not found" ? 404 : 500).json({
+        success: false,
+        error: error.message || "Failed to fetch builds",
+      });
     }
   }
 
@@ -75,12 +73,10 @@ export class BuildsController {
       const build = await buildsService.getBuildDetail(String(req.params.id));
       res.json({ success: true, data: build });
     } catch (error: any) {
-      res
-        .status(error.message === "Build not found" ? 404 : 500)
-        .json({
-          success: false,
-          error: error.message || "Failed to fetch build",
-        });
+      res.status(error.message === "Build not found" ? 404 : 500).json({
+        success: false,
+        error: error.message || "Failed to fetch build",
+      });
     }
   }
 

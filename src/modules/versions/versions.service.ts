@@ -11,8 +11,21 @@ export class VersionsService {
     });
   }
 
-  async createVersion(slug: string, userId: string, trustLevel: string, data: any) {
-    const { version, changelog, buildId, fileUrl, fileName, fileSize, fileHash } = data;
+  async createVersion(
+    slug: string,
+    userId: string,
+    trustLevel: string,
+    data: any,
+  ) {
+    const {
+      version,
+      changelog,
+      buildId,
+      fileUrl,
+      fileName,
+      fileSize,
+      fileHash,
+    } = data;
 
     const plugin = await prisma.plugin.findUnique({ where: { slug } });
     if (!plugin) throw new Error("Plugin not found");
@@ -28,14 +41,22 @@ export class VersionsService {
 
     if (buildId) {
       const build = await prisma.build.findUnique({ where: { id: buildId } });
-      if (!build || build.pluginId !== plugin.id || build.status !== "SUCCESS") {
+      if (
+        !build ||
+        build.pluginId !== plugin.id ||
+        build.status !== "SUCCESS"
+      ) {
         throw new Error("Invalid or unsuccessful build ID");
       }
 
       if (plugin.pluginType === "CPP") {
-        actualFileUrl = JSON.stringify({ linux: build.artifactUrlLinux, win: build.artifactUrlWin });
+        actualFileUrl = JSON.stringify({
+          linux: build.artifactUrlLinux,
+          win: build.artifactUrlWin,
+        });
         actualFileName = `${plugin.slug}-${version}`;
-        actualFileSize = (build.artifactSizeLinux || 0) + (build.artifactSizeWin || 0);
+        actualFileSize =
+          (build.artifactSizeLinux || 0) + (build.artifactSizeWin || 0);
       } else {
         actualFileUrl = build.artifactUrl;
         actualFileName = `${plugin.slug}-${version}.zip`;
@@ -55,24 +76,41 @@ export class VersionsService {
 
     const newVersion = await prisma.version.create({
       data: {
-        version, changelog, fileUrl: actualFileUrl, fileName: actualFileName,
-        fileSize: actualFileSize || 0, fileHash: actualFileHash || "",
-        isLatest: true, status: "PENDING", pluginId: plugin.id,
+        version,
+        changelog,
+        fileUrl: actualFileUrl,
+        fileName: actualFileName,
+        fileSize: actualFileSize || 0,
+        fileHash: actualFileHash || "",
+        isLatest: true,
+        status: "PENDING",
+        pluginId: plugin.id,
       },
     });
 
     if (buildId) {
-      await prisma.build.update({ where: { id: buildId }, data: { isRelease: true } });
+      await prisma.build.update({
+        where: { id: buildId },
+        data: { isRelease: true },
+      });
     }
 
     if (plugin.status === "DRAFT") {
-      await prisma.plugin.update({ where: { id: plugin.id }, data: { status: "PENDING_REVIEW" } });
+      await prisma.plugin.update({
+        where: { id: plugin.id },
+        data: { status: "PENDING_REVIEW" },
+      });
     }
 
     return newVersion;
   }
 
-  async deleteVersion(slug: string, versionString: string, userId: string, trustLevel: string) {
+  async deleteVersion(
+    slug: string,
+    versionString: string,
+    userId: string,
+    trustLevel: string,
+  ) {
     const plugin = await prisma.plugin.findUnique({ where: { slug } });
     if (!plugin) throw new Error("Plugin not found");
 
@@ -94,7 +132,10 @@ export class VersionsService {
         orderBy: { createdAt: "desc" },
       });
       if (nextLatest) {
-        await prisma.version.update({ where: { id: nextLatest.id }, data: { isLatest: true } });
+        await prisma.version.update({
+          where: { id: nextLatest.id },
+          data: { isLatest: true },
+        });
       }
     }
   }

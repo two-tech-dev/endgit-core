@@ -4,36 +4,42 @@ export class DashboardService {
   async getStatus(userId: string) {
     const account = await prisma.account.findFirst({
       where: { userId, provider: "github" },
-      select: { access_token: true }
+      select: { access_token: true },
     });
-    
+
     let hasAppInstalled = false;
     let githubTokenExpired = false;
-    
+
     if (account?.access_token) {
       const ghRes = await fetch("https://api.github.com/user/installations", {
         headers: {
           Authorization: `Bearer ${account.access_token}`,
-          Accept: "application/vnd.github.v3+json"
-        }
+          Accept: "application/vnd.github.v3+json",
+        },
       });
-      
+
       if (ghRes.ok) {
-        const ghData = await ghRes.json() as any;
+        const ghData = (await ghRes.json()) as any;
         const appIdStr = process.env.GITHUB_APP_ID || "3517676";
         const appId = parseInt(appIdStr);
         const appSlug = process.env.GITHUB_APP_SLUG || "endgit-local-dev";
-        
-        hasAppInstalled = ghData.installations?.some((inst: any) => 
-          inst.app_id === appId || 
-          inst.app_slug === appSlug || 
-          (inst.app_slug && inst.app_slug.includes("endgit"))
-        ) || false;
+
+        hasAppInstalled =
+          ghData.installations?.some(
+            (inst: any) =>
+              inst.app_id === appId ||
+              inst.app_slug === appSlug ||
+              (inst.app_slug && inst.app_slug.includes("endgit")),
+          ) || false;
       } else {
         if (ghRes.status === 401) {
           githubTokenExpired = true;
         }
-        console.error("Failed to fetch GitHub installations:", ghRes.status, await ghRes.text().catch(() => ""));
+        console.error(
+          "Failed to fetch GitHub installations:",
+          ghRes.status,
+          await ghRes.text().catch(() => ""),
+        );
       }
     } else {
       githubTokenExpired = true;
@@ -41,7 +47,11 @@ export class DashboardService {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weeklyBuildQuota: true, weeklyBuildCount: true, quotaResetAt: true }
+      select: {
+        weeklyBuildQuota: true,
+        weeklyBuildCount: true,
+        quotaResetAt: true,
+      },
     });
 
     let quota = { used: 0, limit: 50, resetsAt: new Date().toISOString() };
@@ -55,9 +65,13 @@ export class DashboardService {
         resetsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
       }
 
-      quota = { used, limit: user.weeklyBuildQuota, resetsAt: resetsAt.toISOString() };
+      quota = {
+        used,
+        limit: user.weeklyBuildQuota,
+        resetsAt: resetsAt.toISOString(),
+      };
     }
-    
+
     return { hasAppInstalled, githubTokenExpired, quota };
   }
 
@@ -66,7 +80,11 @@ export class DashboardService {
       where: { authorId: userId },
       orderBy: { updatedAt: "desc" },
       include: {
-        versions: { where: { isLatest: true }, select: { version: true }, take: 1 },
+        versions: {
+          where: { isLatest: true },
+          select: { version: true },
+          take: 1,
+        },
         _count: { select: { versions: true, ratings: true, reports: true } },
       },
     });
@@ -83,12 +101,18 @@ export class DashboardService {
   }
 
   async getMyStats(userId: string) {
-    const [totalPlugins, pluginAgg, totalVersions, pendingReviews] = await Promise.all([
-      prisma.plugin.count({ where: { authorId: userId } }),
-      prisma.plugin.aggregate({ where: { authorId: userId }, _sum: { downloads: true } }),
-      prisma.version.count({ where: { plugin: { authorId: userId } } }),
-      prisma.plugin.count({ where: { authorId: userId, status: "PENDING_REVIEW" } }),
-    ]);
+    const [totalPlugins, pluginAgg, totalVersions, pendingReviews] =
+      await Promise.all([
+        prisma.plugin.count({ where: { authorId: userId } }),
+        prisma.plugin.aggregate({
+          where: { authorId: userId },
+          _sum: { downloads: true },
+        }),
+        prisma.version.count({ where: { plugin: { authorId: userId } } }),
+        prisma.plugin.count({
+          where: { authorId: userId, status: "PENDING_REVIEW" },
+        }),
+      ]);
 
     return {
       totalPlugins,

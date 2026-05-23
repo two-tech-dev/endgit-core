@@ -19,12 +19,10 @@ export class RatingsController {
         pagination: { page, limit, total, totalPages },
       });
     } catch (error: any) {
-      res
-        .status(error.message === "Plugin not found" ? 404 : 500)
-        .json({
-          success: false,
-          error: error.message || "Failed to fetch ratings",
-        });
+      res.status(error.message === "Plugin not found" ? 404 : 500).json({
+        success: false,
+        error: error.message || "Failed to fetch ratings",
+      });
     }
   }
 
@@ -35,12 +33,10 @@ export class RatingsController {
       );
       res.json({ success: true, data });
     } catch (error: any) {
-      res
-        .status(error.message === "Plugin not found" ? 404 : 500)
-        .json({
-          success: false,
-          error: error.message || "Failed to fetch rating summary",
-        });
+      res.status(error.message === "Plugin not found" ? 404 : 500).json({
+        success: false,
+        error: error.message || "Failed to fetch rating summary",
+      });
     }
   }
 
@@ -61,12 +57,10 @@ export class RatingsController {
               error.message.includes("no available versions")
             ? 400
             : 500;
-      res
-        .status(status)
-        .json({
-          success: false,
-          error: error.message || "Failed to submit rating",
-        });
+      res.status(status).json({
+        success: false,
+        error: error.message || "Failed to submit rating",
+      });
     }
   }
 
@@ -75,12 +69,10 @@ export class RatingsController {
       await ratingsService.deleteRating(String(req.params.slug), req.user!.id);
       res.json({ success: true, message: "Rating deleted" });
     } catch (error: any) {
-      res
-        .status(error.message === "Plugin not found" ? 404 : 500)
-        .json({
-          success: false,
-          error: error.message || "Failed to delete rating",
-        });
+      res.status(error.message === "Plugin not found" ? 404 : 500).json({
+        success: false,
+        error: error.message || "Failed to delete rating",
+      });
     }
   }
 
@@ -103,12 +95,10 @@ export class RatingsController {
             : error.message.includes("cannot be empty")
               ? 400
               : 500;
-      res
-        .status(status)
-        .json({
-          success: false,
-          error: error.message || "Failed to submit reply",
-        });
+      res.status(status).json({
+        success: false,
+        error: error.message || "Failed to submit reply",
+      });
     }
   }
 }

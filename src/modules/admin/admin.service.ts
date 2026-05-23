@@ -7,7 +7,7 @@ export class AdminService {
   async getUsers(page: number, limit: number, search?: string) {
     const skip = (page - 1) * limit;
     const where: any = {};
-    
+
     if (search) {
       where.OR = [
         { username: { contains: search, mode: "insensitive" } },
@@ -18,15 +18,25 @@ export class AdminService {
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({
-        where, skip, take: limit, orderBy: { createdAt: "desc" },
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
         select: {
-          id: true, username: true, displayName: true, email: true,
-          avatarUrl: true, trustLevel: true, createdAt: true,
-          weeklyBuildQuota: true, weeklyBuildCount: true, quotaResetAt: true,
-          _count: { select: { plugins: true, reviews: true, ratings: true } }
-        }
+          id: true,
+          username: true,
+          displayName: true,
+          email: true,
+          avatarUrl: true,
+          trustLevel: true,
+          createdAt: true,
+          weeklyBuildQuota: true,
+          weeklyBuildCount: true,
+          quotaResetAt: true,
+          _count: { select: { plugins: true, reviews: true, ratings: true } },
+        },
       }),
-      prisma.user.count({ where })
+      prisma.user.count({ where }),
     ]);
 
     return { users, total, totalPages: Math.ceil(total / limit) };
@@ -40,7 +50,7 @@ export class AdminService {
     return await prisma.user.update({
       where: { id: userId },
       data: { trustLevel: trustLevel as any },
-      select: { id: true, username: true, trustLevel: true }
+      select: { id: true, username: true, trustLevel: true },
     });
   }
 
@@ -52,7 +62,7 @@ export class AdminService {
     return await prisma.user.update({
       where: { id: userId },
       data: { weeklyBuildQuota: quota },
-      select: { id: true, username: true, weeklyBuildQuota: true }
+      select: { id: true, username: true, weeklyBuildQuota: true },
     });
   }
 
@@ -67,10 +77,15 @@ export class AdminService {
     return { users, plugins, builds, pendingReviews };
   }
 
-  async getPlugins(page: number, limit: number, search?: string, status?: string) {
+  async getPlugins(
+    page: number,
+    limit: number,
+    search?: string,
+    status?: string,
+  ) {
     const skip = (page - 1) * limit;
     const where: any = {};
-    
+
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
@@ -78,30 +93,47 @@ export class AdminService {
         { slug: { contains: search, mode: "insensitive" } },
       ];
     }
-    
+
     if (status) {
       where.status = status;
     }
 
     const [plugins, total] = await Promise.all([
       prisma.plugin.findMany({
-        where, skip, take: limit, orderBy: { createdAt: "desc" },
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
         include: {
           author: { select: { username: true, displayName: true } },
           versions: {
             orderBy: { createdAt: "desc" },
-            select: { id: true, version: true, status: true, createdAt: true }
-          }
-        }
+            select: { id: true, version: true, status: true, createdAt: true },
+          },
+        },
       }),
-      prisma.plugin.count({ where })
+      prisma.plugin.count({ where }),
     ]);
 
     return { plugins, total, totalPages: Math.ceil(total / limit) };
   }
 
-  async updatePluginStatus(pluginId: string, status: string, reason?: string, adminUser?: any) {
-    if (!["DRAFT", "PENDING_REVIEW", "APPROVED", "REJECTED", "SUSPENDED", "FLAGGED"].includes(status)) {
+  async updatePluginStatus(
+    pluginId: string,
+    status: string,
+    reason?: string,
+    adminUser?: any,
+  ) {
+    if (
+      ![
+        "DRAFT",
+        "PENDING_REVIEW",
+        "APPROVED",
+        "REJECTED",
+        "SUSPENDED",
+        "FLAGGED",
+      ].includes(status)
+    ) {
       throw new Error("Invalid plugin status");
     }
 
@@ -109,7 +141,11 @@ export class AdminService {
       where: { id: pluginId },
       include: {
         author: { select: { id: true, username: true, email: true } },
-        versions: { where: { status: "APPROVED" }, orderBy: { createdAt: "desc" }, take: 1 },
+        versions: {
+          where: { status: "APPROVED" },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
       },
     });
 
@@ -123,11 +159,17 @@ export class AdminService {
       where: { id: pluginId },
       data: {
         status: status as any,
-        statusReason: isNegative ? (reason || null) : null,
+        statusReason: isNegative ? reason || null : null,
         // Clear reviewBuildId on rejection just like the review pipeline does
         ...(status === "REJECTED" && { reviewBuildId: null }),
       },
-      select: { id: true, slug: true, status: true, statusReason: true, displayName: true },
+      select: {
+        id: true,
+        slug: true,
+        status: true,
+        statusReason: true,
+        displayName: true,
+      },
     });
 
     // When transitioning from APPROVED to a negative status, clear isLatest flags
@@ -148,7 +190,7 @@ export class AdminService {
           targetId: pluginId,
           oldStatus,
           newStatus: status,
-          reason: isNegative ? (reason || null) : null,
+          reason: isNegative ? reason || null : null,
           actorId: adminUser.id,
           pluginId,
         },
@@ -164,16 +206,26 @@ export class AdminService {
         pluginName: plugin.displayName,
         pluginSlug: plugin.slug,
         version: latestVersion?.version || "N/A",
-        submittedAt: latestVersion?.createdAt?.toISOString() || new Date().toISOString(),
+        submittedAt:
+          latestVersion?.createdAt?.toISOString() || new Date().toISOString(),
         reviewerUsername: adminUser?.username || "Admin",
-        reason: reason || `Your plugin has been ${status.toLowerCase()} by an administrator.`,
-      }).catch((err: any) => console.error("[Admin] Failed to send status change email:", err));
+        reason:
+          reason ||
+          `Your plugin has been ${status.toLowerCase()} by an administrator.`,
+      }).catch((err: any) =>
+        console.error("[Admin] Failed to send status change email:", err),
+      );
     }
 
     return updated;
   }
 
-  async updateVersionStatus(versionId: string, status: string, reason?: string, adminUser?: any) {
+  async updateVersionStatus(
+    versionId: string,
+    status: string,
+    reason?: string,
+    adminUser?: any,
+  ) {
     if (!["PENDING", "APPROVED", "REJECTED"].includes(status)) {
       throw new Error("Invalid version status");
     }
@@ -182,7 +234,9 @@ export class AdminService {
       where: { id: versionId },
       include: {
         plugin: {
-          include: { author: { select: { id: true, username: true, email: true } } },
+          include: {
+            author: { select: { id: true, username: true, email: true } },
+          },
         },
       },
     });
@@ -197,7 +251,7 @@ export class AdminService {
       where: { id: versionId },
       data: {
         status: status as any,
-        statusReason: isNegative ? (reason || null) : null,
+        statusReason: isNegative ? reason || null : null,
         // Clear isLatest if rejecting an approved version
         ...(oldStatus === "APPROVED" && isNegative && { isLatest: false }),
       },
@@ -213,7 +267,7 @@ export class AdminService {
           targetId: versionId,
           oldStatus,
           newStatus: status,
-          reason: isNegative ? (reason || null) : null,
+          reason: isNegative ? reason || null : null,
           actorId: adminUser.id,
           pluginId: version.pluginId,
         },
@@ -231,20 +285,25 @@ export class AdminService {
         submittedAt: version.createdAt.toISOString(),
         reviewerUsername: adminUser?.username || "Admin",
         reason: reason || "This version has been rejected by an administrator.",
-      }).catch((err: any) => console.error("[Admin] Failed to send version rejection email:", err));
+      }).catch((err: any) =>
+        console.error("[Admin] Failed to send version rejection email:", err),
+      );
     }
 
     return updated;
   }
 
   async toggleFeatured(pluginId: string) {
-    const plugin = await prisma.plugin.findUnique({ where: { id: pluginId }, select: { isFeatured: true } });
+    const plugin = await prisma.plugin.findUnique({
+      where: { id: pluginId },
+      select: { isFeatured: true },
+    });
     if (!plugin) throw new Error("Plugin not found");
 
     return await prisma.plugin.update({
       where: { id: pluginId },
       data: { isFeatured: !plugin.isFeatured },
-      select: { id: true, slug: true, displayName: true, isFeatured: true }
+      select: { id: true, slug: true, displayName: true, isFeatured: true },
     });
   }
 }

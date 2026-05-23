@@ -11,9 +11,9 @@ authRouter.get("/me", requireAuth, authController.getMe);
 // ── Device Authorization Flow (RFC 8628) ─────────────────────────────────────
 authRouter.post("/device", authRateLimit, authController.requestDeviceCode);
 authRouter.post(
-    "/device/authorize",
-    requireAuth,
-    authController.authorizeDevice,
+  "/device/authorize",
+  requireAuth,
+  authController.authorizeDevice,
 );
 authRouter.post("/device/token", authController.pollDeviceToken);
 authRouter.post("/refresh", authRateLimit, authController.refreshToken);

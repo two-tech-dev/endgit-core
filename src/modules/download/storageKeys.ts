@@ -1,6 +1,10 @@
-const ARTIFACT_KEY = /^artifacts\/[a-z0-9][a-z0-9-]{0,62}\/[1-9][0-9]*\/[A-Za-z0-9_.-]+\.(whl|so|dll)$/;
+const ARTIFACT_KEY =
+  /^artifacts\/[a-z0-9][a-z0-9-]{0,62}\/[1-9][0-9]*\/[A-Za-z0-9_.-]+\.(whl|so|dll)$/;
 
-export function normalizeDownloadArtifactKey(value: string, expectedPluginSlug?: string): string {
+export function normalizeDownloadArtifactKey(
+  value: string,
+  expectedPluginSlug?: string,
+): string {
   const downloadPrefix = "/api/v1/download/file/";
   let key = value;
 

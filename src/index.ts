@@ -30,35 +30,39 @@ const PORT = process.env.PORT || process.env.API_PORT || 4000;
 
 // ── Middleware ────────────────────────────────────────────
 
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'"],
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'"],
+      },
     },
-  },
-  crossOriginEmbedderPolicy: false,
-}));
+    crossOriginEmbedderPolicy: false,
+  }),
+);
 app.use(publicRateLimit);
 app.use(
   cors({
     origin: [
       process.env.NEXTAUTH_URL || "http://localhost:3000",
-      "http://localhost:4000" // Always allow localhost for local development
+      "http://localhost:4000", // Always allow localhost for local development
     ],
     credentials: true,
-  })
+  }),
 );
 app.use(morgan("dev"));
-app.use(express.json({
-  limit: "1mb",
-  verify: (req: any, res, buf) => {
-    req.rawBody = buf;
-  }
-}));
+app.use(
+  express.json({
+    limit: "1mb",
+    verify: (req: any, res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
 app.use(express.urlencoded({ extended: true }));
 
 // ── Health Check ─────────────────────────────────────────
@@ -98,14 +102,14 @@ app.use(
     err: any,
     _req: express.Request,
     res: express.Response,
-    _next: express.NextFunction
+    _next: express.NextFunction,
   ) => {
     console.error("Error:", err.message);
     res.status(err.status || 500).json({
       success: false,
       error: err.message || "Internal Server Error",
     });
-  }
+  },
 );
 
 // ── 404 Handler ──────────────────────────────────────────

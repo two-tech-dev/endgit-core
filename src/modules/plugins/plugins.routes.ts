@@ -16,4 +16,9 @@ pluginsRouter.get("/:slug", optionalAuth, pluginsController.getBySlug);
 pluginsRouter.post("/", requireAuth, pluginsController.createPlugin);
 pluginsRouter.patch("/:slug", requireAuth, pluginsController.updatePlugin);
 pluginsRouter.delete("/:slug", requireAuth, pluginsController.deletePlugin);
-pluginsRouter.post("/:slug/build", requireAuth, buildRateLimit, pluginsController.triggerBuild);
+pluginsRouter.post(
+  "/:slug/build",
+  requireAuth,
+  buildRateLimit,
+  pluginsController.triggerBuild,
+);

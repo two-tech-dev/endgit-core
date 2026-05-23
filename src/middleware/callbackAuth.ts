@@ -4,10 +4,16 @@ import { requireSecret } from "../lib/secrets";
 
 const CALLBACK_TOKEN = requireSecret("ENDGIT_CALLBACK_TOKEN");
 
-export function requireCallbackAuth(req: Request, res: Response, next: NextFunction) {
+export function requireCallbackAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   const token = req.headers.authorization?.replace(/^Bearer\s+/i, "") || "";
   if (!timingSafeEqual(token, CALLBACK_TOKEN)) {
-    return res.status(401).json({ success: false, error: "Unauthorized callback" });
+    return res
+      .status(401)
+      .json({ success: false, error: "Unauthorized callback" });
   }
 
   next();

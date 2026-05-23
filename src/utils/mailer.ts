@@ -14,7 +14,8 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const FROM_ADDRESS = process.env.SMTP_FROM || "EndGit <notifications@endgit.dev>";
+const FROM_ADDRESS =
+  process.env.SMTP_FROM || "EndGit <notifications@endgit.dev>";
 const SITE_URL = process.env.SITE_URL || "https://endgit.dev";
 
 /**
@@ -31,7 +32,9 @@ export async function sendRejectionEmail(opts: {
   reason: string;
 }) {
   if (!process.env.SMTP_PASS) {
-    console.warn("[Mailer] SMTP_PASS not configured — skipping rejection email");
+    console.warn(
+      "[Mailer] SMTP_PASS not configured — skipping rejection email",
+    );
     return;
   }
 
@@ -85,7 +88,9 @@ EndGit (${SITE_URL})`;
       text,
       html,
     });
-    console.log(`[Mailer] Rejection email sent to ${opts.to} for ${opts.pluginSlug}`);
+    console.log(
+      `[Mailer] Rejection email sent to ${opts.to} for ${opts.pluginSlug}`,
+    );
   } catch (error) {
     console.error("[Mailer] Failed to send rejection email:", error);
   }
@@ -147,7 +152,9 @@ EndGit (${SITE_URL})`;
       text,
       html,
     });
-    console.log(`[Mailer] Approval email sent to ${opts.to} for ${opts.pluginSlug}`);
+    console.log(
+      `[Mailer] Approval email sent to ${opts.to} for ${opts.pluginSlug}`,
+    );
   } catch (error) {
     console.error("[Mailer] Failed to send approval email:", error);
   }
@@ -160,14 +167,14 @@ EndGit (${SITE_URL})`;
 function formatReasonHtml(reason: string): string {
   return reason
     .split("\n")
-    .map(line => {
+    .map((line) => {
       // Blockquote lines (starting with >)
       if (line.trim().startsWith(">")) {
         const content = line.trim().slice(1).trim();
         return `<blockquote style="border-left: 3px solid #ccc; padding-left: 10px; margin-left: 0; color: #555;">${content}</blockquote>`;
       }
       // Bold (**text**)
-      const boldified = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      const boldified = line.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
       return boldified;
     })
     .join("<br>");

@@ -12,7 +12,12 @@ export class GithubController {
       res.json({ success: true, data: orgs });
     } catch (error: any) {
       console.error("GitHub orgs error:", error);
-      res.status(500).json({ success: false, error: error.message || "Failed to fetch organizations" });
+      res
+        .status(500)
+        .json({
+          success: false,
+          error: error.message || "Failed to fetch organizations",
+        });
     }
   }
 
@@ -30,16 +35,39 @@ export class GithubController {
         return res.json(cached);
       }
 
-      const { repos, hasMore, totalCount, totalEnabled, totalDisabled } = await githubService.getUserRepos(req.user!.id, page, perPage, org, search);
-      
-      const payload = { success: true, data: repos, pagination: { hasMore, page, perPage, totalCount, totalEnabled, totalDisabled } };
+      const { repos, hasMore, totalCount, totalEnabled, totalDisabled } =
+        await githubService.getUserRepos(
+          req.user!.id,
+          page,
+          perPage,
+          org,
+          search,
+        );
+
+      const payload = {
+        success: true,
+        data: repos,
+        pagination: {
+          hasMore,
+          page,
+          perPage,
+          totalCount,
+          totalEnabled,
+          totalDisabled,
+        },
+      };
       await cacheSet(cacheKey, payload, REPOS_CACHE_TTL);
 
       res.set("Cache-Control", "private, max-age=30");
       res.json(payload);
     } catch (error: any) {
       console.error("GitHub repos error:", error);
-      res.status(500).json({ success: false, error: error.message || "Failed to fetch repositories" });
+      res
+        .status(500)
+        .json({
+          success: false,
+          error: error.message || "Failed to fetch repositories",
+        });
     }
   }
 
@@ -53,7 +81,12 @@ export class GithubController {
       });
     } catch (error: any) {
       console.error("Enable CI error:", error);
-      res.status(error.message.includes("not found") ? 404 : 400).json({ success: false, error: error.message || "Failed to enable CI" });
+      res
+        .status(error.message.includes("not found") ? 404 : 400)
+        .json({
+          success: false,
+          error: error.message || "Failed to enable CI",
+        });
     }
   }
 
@@ -63,7 +96,12 @@ export class GithubController {
       res.json({ success: true, message: "CI disabled and webhook removed" });
     } catch (error: any) {
       console.error("Disable CI error:", error);
-      res.status(500).json({ success: false, error: error.message || "Failed to disable CI" });
+      res
+        .status(500)
+        .json({
+          success: false,
+          error: error.message || "Failed to disable CI",
+        });
     }
   }
 
@@ -71,14 +109,25 @@ export class GithubController {
     try {
       const { owner, repo } = req.query;
       if (!owner || !repo) {
-        return res.status(400).json({ success: false, error: "Missing owner or repo" });
+        return res
+          .status(400)
+          .json({ success: false, error: "Missing owner or repo" });
       }
 
-      const text = await githubService.getRepoReadme(req.user!.id, String(owner), String(repo));
+      const text = await githubService.getRepoReadme(
+        req.user!.id,
+        String(owner),
+        String(repo),
+      );
       res.json({ success: true, data: text });
     } catch (error: any) {
       console.error("Proxy README error:", error);
-      res.status(500).json({ success: false, error: error.message || "Failed to fetch README" });
+      res
+        .status(500)
+        .json({
+          success: false,
+          error: error.message || "Failed to fetch README",
+        });
     }
   }
 
@@ -86,14 +135,25 @@ export class GithubController {
     try {
       const { owner, repo } = req.query;
       if (!owner || !repo) {
-        return res.status(400).json({ success: false, error: "Missing owner or repo" });
+        return res
+          .status(400)
+          .json({ success: false, error: "Missing owner or repo" });
       }
 
-      const license = await githubService.getRepoLicense(req.user!.id, String(owner), String(repo));
+      const license = await githubService.getRepoLicense(
+        req.user!.id,
+        String(owner),
+        String(repo),
+      );
       res.json({ success: true, data: license });
     } catch (error: any) {
       console.error("Proxy license error:", error);
-      res.status(500).json({ success: false, error: error.message || "Failed to fetch license" });
+      res
+        .status(500)
+        .json({
+          success: false,
+          error: error.message || "Failed to fetch license",
+        });
     }
   }
 }

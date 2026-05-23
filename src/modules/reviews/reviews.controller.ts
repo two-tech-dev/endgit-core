@@ -8,7 +8,12 @@ export class ReviewsController {
       const data = await reviewsService.getAutoChecks(String(req.params.slug));
       res.json({ success: true, data });
     } catch (error: any) {
-      res.status(error.message === "Plugin not found" ? 404 : 500).json({ success: false, error: error.message || "Failed to get checks" });
+      res
+        .status(error.message === "Plugin not found" ? 404 : 500)
+        .json({
+          success: false,
+          error: error.message || "Failed to get checks",
+        });
     }
   }
 
@@ -17,16 +22,36 @@ export class ReviewsController {
       const data = await reviewsService.getReviews(String(req.params.slug));
       res.json({ success: true, data });
     } catch (error: any) {
-      res.status(error.message === "Plugin not found" ? 404 : 500).json({ success: false, error: error.message || "Failed to get reviews" });
+      res
+        .status(error.message === "Plugin not found" ? 404 : 500)
+        .json({
+          success: false,
+          error: error.message || "Failed to get reviews",
+        });
     }
   }
 
   async submitReview(req: AuthRequest, res: Response) {
     try {
-      const data = await reviewsService.submitReview(String(req.params.slug), req.user!.id, req.body);
+      const data = await reviewsService.submitReview(
+        String(req.params.slug),
+        req.user!.id,
+        req.body,
+      );
       res.status(201).json({ success: true, data });
     } catch (error: any) {
-      res.status(error.message === "Plugin not found" ? 404 : (error.message.includes("required") ? 400 : 500)).json({ success: false, error: error.message || "Failed to submit review" });
+      res
+        .status(
+          error.message === "Plugin not found"
+            ? 404
+            : error.message.includes("required")
+              ? 400
+              : 500,
+        )
+        .json({
+          success: false,
+          error: error.message || "Failed to submit review",
+        });
     }
   }
 
@@ -35,7 +60,9 @@ export class ReviewsController {
       const data = await reviewsService.getReviewQueue();
       res.json({ success: true, data });
     } catch (error: any) {
-      res.status(500).json({ success: false, error: "Failed to get review queue" });
+      res
+        .status(500)
+        .json({ success: false, error: "Failed to get review queue" });
     }
   }
 }

@@ -12,7 +12,7 @@ export class LocalStorage implements StorageProvider {
   async upload(
     key: string,
     data: Buffer,
-    _contentType?: string
+    _contentType?: string,
   ): Promise<string> {
     const filePath = this.resolveKey(key);
     const dir = path.dirname(filePath);

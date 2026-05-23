@@ -52,16 +52,16 @@ The API will be available at `http://localhost:4000`.
 
 ### API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/health` | Health check |
-| `POST` | `/api/v1/auth/login` | Login with GitHub token |
-| `GET` | `/api/v1/plugins` | List plugins |
-| `GET` | `/api/v1/plugins/:slug` | Plugin details |
-| `GET` | `/api/v1/builds/:id` | Build details |
-| `POST` | `/api/v1/github/repos/:id/enable` | Enable CI for a repo |
-| `POST` | `/api/v1/webhooks/github` | GitHub webhook receiver |
-| `GET` | `/api/v1/download/file/:key` | Download artifact |
+| Method | Endpoint                          | Description             |
+| ------ | --------------------------------- | ----------------------- |
+| `GET`  | `/api/v1/health`                  | Health check            |
+| `POST` | `/api/v1/auth/login`              | Login with GitHub token |
+| `GET`  | `/api/v1/plugins`                 | List plugins            |
+| `GET`  | `/api/v1/plugins/:slug`           | Plugin details          |
+| `GET`  | `/api/v1/builds/:id`              | Build details           |
+| `POST` | `/api/v1/github/repos/:id/enable` | Enable CI for a repo    |
+| `POST` | `/api/v1/webhooks/github`         | GitHub webhook receiver |
+| `GET`  | `/api/v1/download/file/:key`      | Download artifact       |
 
 ## Architecture
 
@@ -80,11 +80,11 @@ endgit-core/
 
 ## Related Repositories
 
-| Repository | Description |
-|------------|-------------|
-| [endgit-web](https://github.com/two-tech-dev/endgit-web) | Next.js web dashboard |
+| Repository                                                     | Description                      |
+| -------------------------------------------------------------- | -------------------------------- |
+| [endgit-web](https://github.com/two-tech-dev/endgit-web)       | Next.js web dashboard            |
 | [endgit-worker](https://github.com/two-tech-dev/endgit-worker) | Build worker (Docker sandboxing) |
-| [endgit-cli](https://github.com/two-tech-dev/endgit-cli) | CLI tool for developers |
+| [endgit-cli](https://github.com/two-tech-dev/endgit-cli)       | CLI tool for developers          |
 
 ## License
 

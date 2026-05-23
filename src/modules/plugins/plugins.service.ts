@@ -303,7 +303,17 @@ export class PluginsService {
       null;
 
     const versionsWithVT = visibleVersions.map((v: any) => {
-      const { vtScanId, vtStatus, vtMalicious, vtSuspicious, vtUndetected, vtTotal, vtPermalink, vtScanDate, ...rest } = v;
+      const {
+        vtScanId,
+        vtStatus,
+        vtMalicious,
+        vtSuspicious,
+        vtUndetected,
+        vtTotal,
+        vtPermalink,
+        vtScanDate,
+        ...rest
+      } = v;
       return {
         ...rest,
         virustotal: {

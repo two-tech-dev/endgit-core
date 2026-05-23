@@ -7,12 +7,12 @@ const CONFIG = {
   BASE_URL: "https://endgit.dev",
   LOGO_URL: "https://endgit.dev/logo.png",
   COLORS: {
-    INFO: 0x38BDF8,      // Cyan (Approved)
-    SUCCESS: 0x2ECC71,   // Green (Submitted)
-    WARNING: 0xFFDB58,   // Yellow (Rating)
-    DANGER: 0xEF4444,    // Red (Rejected/Flagged)
-    NEUTRAL: 0x94A3B8,   // Slate
-  }
+    INFO: 0x38bdf8, // Cyan (Approved)
+    SUCCESS: 0x2ecc71, // Green (Submitted)
+    WARNING: 0xffdb58, // Yellow (Rating)
+    DANGER: 0xef4444, // Red (Rejected/Flagged)
+    NEUTRAL: 0x94a3b8, // Slate
+  },
 };
 
 type DiscordEmbed = {
@@ -68,7 +68,11 @@ function formatStars(score: number): string {
 /**
  * Notification for when a plugin version is approved and released.
  */
-export async function sendPluginApprovedWebhook(plugin: any, version: any, reviewerUsername: string) {
+export async function sendPluginApprovedWebhook(
+  plugin: any,
+  version: any,
+  reviewerUsername: string,
+) {
   const webhookUrl = process.env.DISCORD_WEBHOOK_APPROVED_PLUGIN;
   if (!webhookUrl) return;
 
@@ -76,9 +80,10 @@ export async function sendPluginApprovedWebhook(plugin: any, version: any, revie
   const pluginUrl = `${CONFIG.BASE_URL}/plugins/${plugin.slug}?v=${version.version}`;
 
   // Format author list from producers or default to the plugin author
-  const authorStr = version.producers?.length > 0
-    ? version.producers.map((p: any) => p.githubUser).join(", ")
-    : plugin.author?.username || "Unknown";
+  const authorStr =
+    version.producers?.length > 0
+      ? version.producers.map((p: any) => p.githubUser).join(", ")
+      : plugin.author?.username || "Unknown";
 
   const description = [
     `**Category**: ${category}`,
@@ -87,7 +92,7 @@ export async function sendPluginApprovedWebhook(plugin: any, version: any, revie
     "",
     plugin.description || "A plugin for Endstone",
     "",
-    `**Release Notes**: ${version.changelog || "No notes provided."}`
+    `**Release Notes**: ${version.changelog || "No notes provided."}`,
   ].join("\n");
 
   const embed: DiscordEmbed = {
@@ -97,19 +102,23 @@ export async function sendPluginApprovedWebhook(plugin: any, version: any, revie
     color: CONFIG.COLORS.INFO,
     timestamp: new Date().toISOString(),
     thumbnail: plugin.iconUrl ? { url: plugin.iconUrl } : undefined,
-    footer: { text: "EndGit Release Pipeline", icon_url: CONFIG.LOGO_URL }
+    footer: { text: "EndGit Release Pipeline", icon_url: CONFIG.LOGO_URL },
   };
 
   await sendWebhook(webhookUrl, {
     username: "Plugin Updates",
-    embeds: [embed]
+    embeds: [embed],
   });
 }
 
 /**
  * Notification for new user reviews and ratings.
  */
-export async function sendNewRatingWebhook(plugin: any, rating: any, reviewerName: string) {
+export async function sendNewRatingWebhook(
+  plugin: any,
+  rating: any,
+  reviewerName: string,
+) {
   const webhookUrl = process.env.DISCORD_WEBHOOK_NEW_RATING;
   if (!webhookUrl) return;
 
@@ -120,7 +129,7 @@ export async function sendNewRatingWebhook(plugin: any, rating: any, reviewerNam
     `**Rating**: ${stars} (${rating.score}/5)`,
     `**User**: ${reviewerName}`,
     "",
-    rating.comment ? `"${rating.comment}"` : "*No comment provided.*"
+    rating.comment ? `"${rating.comment}"` : "*No comment provided.*",
   ].join("\n");
 
   const embed: DiscordEmbed = {
@@ -130,20 +139,26 @@ export async function sendNewRatingWebhook(plugin: any, rating: any, reviewerNam
     color: CONFIG.COLORS.WARNING,
     timestamp: new Date().toISOString(),
     thumbnail: plugin.iconUrl ? { url: plugin.iconUrl } : undefined,
-    footer: { text: "EndGit User Feedback", icon_url: CONFIG.LOGO_URL }
+    footer: { text: "EndGit User Feedback", icon_url: CONFIG.LOGO_URL },
   };
 
   await sendWebhook(webhookUrl, {
     username: "User Reviews",
-    embeds: [embed]
+    embeds: [embed],
   });
 }
 
 /**
  * Notification for new plugin/version submissions pending review.
  */
-export async function sendPluginSubmittedWebhook(plugin: any, version: string, authorUsername: string) {
-  const webhookUrl = process.env.DISCORD_WEBHOOK_SUBMITTED_PLUGIN || process.env.DISCORD_WEBHOOK_APPROVED_PLUGIN;
+export async function sendPluginSubmittedWebhook(
+  plugin: any,
+  version: string,
+  authorUsername: string,
+) {
+  const webhookUrl =
+    process.env.DISCORD_WEBHOOK_SUBMITTED_PLUGIN ||
+    process.env.DISCORD_WEBHOOK_APPROVED_PLUGIN;
   if (!webhookUrl) return;
 
   const pluginUrl = `${CONFIG.BASE_URL}/plugins/${plugin.slug}?v=${version}`;
@@ -153,7 +168,7 @@ export async function sendPluginSubmittedWebhook(plugin: any, version: string, a
     `**Author**: ${authorUsername}`,
     `**Status**: ⏳ Pending Review`,
     "",
-    plugin.description || `A new version has been submitted for review.`
+    plugin.description || `A new version has been submitted for review.`,
   ].join("\n");
 
   const embed: DiscordEmbed = {
@@ -163,30 +178,38 @@ export async function sendPluginSubmittedWebhook(plugin: any, version: string, a
     color: CONFIG.COLORS.SUCCESS,
     timestamp: new Date().toISOString(),
     thumbnail: plugin.iconUrl ? { url: plugin.iconUrl } : undefined,
-    footer: { text: "EndGit Moderation Queue", icon_url: CONFIG.LOGO_URL }
+    footer: { text: "EndGit Moderation Queue", icon_url: CONFIG.LOGO_URL },
   };
 
   await sendWebhook(webhookUrl, {
     username: "Plugin Updates",
-    embeds: [embed]
+    embeds: [embed],
   });
 }
 
 /**
  * Notification for when a plugin or version is rejected or flagged.
  */
-export async function sendPluginModerationWebhook(plugin: any, status: string, reason: string | null, adminUsername: string) {
-  const webhookUrl = process.env.DISCORD_WEBHOOK_MODERATION || process.env.DISCORD_WEBHOOK_APPROVED_PLUGIN;
+export async function sendPluginModerationWebhook(
+  plugin: any,
+  status: string,
+  reason: string | null,
+  adminUsername: string,
+) {
+  const webhookUrl =
+    process.env.DISCORD_WEBHOOK_MODERATION ||
+    process.env.DISCORD_WEBHOOK_APPROVED_PLUGIN;
   if (!webhookUrl) return;
 
   const pluginUrl = `${CONFIG.BASE_URL}/plugins/${plugin.slug}`;
-  const color = status === "APPROVED" ? CONFIG.COLORS.SUCCESS : CONFIG.COLORS.DANGER;
+  const color =
+    status === "APPROVED" ? CONFIG.COLORS.SUCCESS : CONFIG.COLORS.DANGER;
 
   const description = [
     `**New Status**: **${status}**`,
     `**Action By**: @${adminUsername}`,
     "",
-    `**Reason**: ${reason || "No reason specified."}`
+    `**Reason**: ${reason || "No reason specified."}`,
   ].join("\n");
 
   const embed: DiscordEmbed = {
@@ -195,20 +218,27 @@ export async function sendPluginModerationWebhook(plugin: any, status: string, r
     description,
     color: color,
     timestamp: new Date().toISOString(),
-    footer: { text: "EndGit Security & Safety", icon_url: CONFIG.LOGO_URL }
+    footer: { text: "EndGit Security & Safety", icon_url: CONFIG.LOGO_URL },
   };
 
   await sendWebhook(webhookUrl, {
     username: "Moderation Logs",
-    embeds: [embed]
+    embeds: [embed],
   });
 }
 
 /**
  * Notification for when a plugin is reported by a user.
  */
-export async function sendPluginReportWebhook(plugin: any, reporterUsername: string, reason: string, details?: string) {
-  const webhookUrl = process.env.DISCORD_WEBHOOK_MODERATION || process.env.DISCORD_WEBHOOK_APPROVED_PLUGIN;
+export async function sendPluginReportWebhook(
+  plugin: any,
+  reporterUsername: string,
+  reason: string,
+  details?: string,
+) {
+  const webhookUrl =
+    process.env.DISCORD_WEBHOOK_MODERATION ||
+    process.env.DISCORD_WEBHOOK_APPROVED_PLUGIN;
   if (!webhookUrl) return;
 
   const pluginUrl = `${CONFIG.BASE_URL}/plugins/${plugin.slug}`;
@@ -217,7 +247,7 @@ export async function sendPluginReportWebhook(plugin: any, reporterUsername: str
     `**Reporter**: ${reporterUsername}`,
     `**Reason**: **${reason}**`,
     "",
-    `**Details**: ${details || "No additional details provided."}`
+    `**Details**: ${details || "No additional details provided."}`,
   ].join("\n");
 
   const embed: DiscordEmbed = {
@@ -226,14 +256,11 @@ export async function sendPluginReportWebhook(plugin: any, reporterUsername: str
     description,
     color: CONFIG.COLORS.DANGER,
     timestamp: new Date().toISOString(),
-    footer: { text: "EndGit Safety Report", icon_url: CONFIG.LOGO_URL }
+    footer: { text: "EndGit Safety Report", icon_url: CONFIG.LOGO_URL },
   };
 
   await sendWebhook(webhookUrl, {
     username: "Safety Alerts",
-    embeds: [embed]
+    embeds: [embed],
   });
 }
-
-
-

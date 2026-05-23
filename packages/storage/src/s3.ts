@@ -1,5 +1,11 @@
 import { StorageProvider } from "./index";
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  HeadObjectCommand,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export class S3Storage implements StorageProvider {
@@ -8,7 +14,7 @@ export class S3Storage implements StorageProvider {
 
   constructor() {
     this.bucket = process.env.S3_BUCKET || "endgit-artifacts";
-    
+
     this.client = new S3Client({
       region: process.env.S3_REGION || "us-east-1",
       endpoint: process.env.S3_ENDPOINT, // e.g. https://s3.us-east-1.amazonaws.com or MinIO/R2 endpoint
@@ -20,7 +26,11 @@ export class S3Storage implements StorageProvider {
     });
   }
 
-  async upload(key: string, data: Buffer, contentType?: string): Promise<string> {
+  async upload(
+    key: string,
+    data: Buffer,
+    contentType?: string,
+  ): Promise<string> {
     const command = new PutObjectCommand({
       Bucket: this.bucket,
       Key: key,
@@ -40,9 +50,11 @@ export class S3Storage implements StorageProvider {
 
     const response = await this.client.send(command);
     if (!response.Body) {
-      throw new Error(`Failed to download ${key} from S3: Response body is empty`);
+      throw new Error(
+        `Failed to download ${key} from S3: Response body is empty`,
+      );
     }
-    
+
     // Convert Node.js readable stream to Buffer
     const stream = response.Body as NodeJS.ReadableStream;
     const chunks: Buffer[] = [];
@@ -62,7 +74,7 @@ export class S3Storage implements StorageProvider {
   }
 
   // Generate a presigned URL that is valid for 1 hour
-  // If the bucket is public, this could just return the public URL, 
+  // If the bucket is public, this could just return the public URL,
   // but presigned URLs are safer for private artifacts.
   async getPresignedUrl(key: string): Promise<string> {
     const command = new GetObjectCommand({
@@ -72,7 +84,7 @@ export class S3Storage implements StorageProvider {
     return getSignedUrl(this.client, command, { expiresIn: 3600 });
   }
 
-  // Synchronous getUrl for compatibility with the interface. 
+  // Synchronous getUrl for compatibility with the interface.
   // In API we will redirect to /api/v1/download/file/:key which internally fetches or redirects to presigned URL
   getUrl(key: string): string {
     return `/api/v1/download/file/${encodeURIComponent(key)}`;

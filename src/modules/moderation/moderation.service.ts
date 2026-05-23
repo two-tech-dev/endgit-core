@@ -1,25 +1,45 @@
 import { prisma } from "@endgit/database";
 
 export class ModerationService {
-  async reportPlugin(slug: string, reporterId: string, reason: string, details?: string) {
+  async reportPlugin(
+    slug: string,
+    reporterId: string,
+    reason: string,
+    details?: string,
+  ) {
     const plugin = await prisma.plugin.findUnique({ where: { slug } });
     if (!plugin) throw new Error("Plugin not found");
 
     if (!reason) throw new Error("reason is required");
 
     const report = await prisma.report.create({
-      data: { reason: reason as any, details: details || null, reporterId, pluginId: plugin.id },
+      data: {
+        reason: reason as any,
+        details: details || null,
+        reporterId,
+        pluginId: plugin.id,
+      },
     });
 
-    const unresolvedCount = await prisma.report.count({ where: { pluginId: plugin.id, resolved: false } });
+    const unresolvedCount = await prisma.report.count({
+      where: { pluginId: plugin.id, resolved: false },
+    });
     if (unresolvedCount >= 3 && plugin.status !== "FLAGGED") {
-      await prisma.plugin.update({ where: { id: plugin.id }, data: { status: "FLAGGED" } });
+      await prisma.plugin.update({
+        where: { id: plugin.id },
+        data: { status: "FLAGGED" },
+      });
     }
 
     return report;
   }
 
-  async ratePlugin(slug: string, userId: string, score: number, comment?: string) {
+  async ratePlugin(
+    slug: string,
+    userId: string,
+    score: number,
+    comment?: string,
+  ) {
     const plugin = await prisma.plugin.findUnique({ where: { slug } });
     if (!plugin) throw new Error("Plugin not found");
 
