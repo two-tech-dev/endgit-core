@@ -23,12 +23,10 @@ export class SubmitController {
             error.message.includes("own builds")
           ? 403
           : 400;
-      res
-        .status(status)
-        .json({
-          success: false,
-          error: error.message || "Failed to submit for review",
-        });
+      res.status(status).json({
+        success: false,
+        error: error.message || "Failed to submit for review",
+      });
     }
   }
 
@@ -37,12 +35,10 @@ export class SubmitController {
       const data = await submitService.getStatus(String(req.params.pluginSlug));
       res.json({ success: true, data });
     } catch (error: any) {
-      res
-        .status(error.message === "Plugin not found" ? 404 : 500)
-        .json({
-          success: false,
-          error: error.message || "Failed to fetch review status",
-        });
+      res.status(error.message === "Plugin not found" ? 404 : 500).json({
+        success: false,
+        error: error.message || "Failed to fetch review status",
+      });
     }
   }
 }

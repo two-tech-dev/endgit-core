@@ -58,12 +58,10 @@ export class ModerationController {
       const data = await moderationService.getRatings(String(req.params.slug));
       res.json({ success: true, data });
     } catch (error: any) {
-      res
-        .status(error.message === "Plugin not found" ? 404 : 500)
-        .json({
-          success: false,
-          error: error.message || "Failed to get ratings",
-        });
+      res.status(error.message === "Plugin not found" ? 404 : 500).json({
+        success: false,
+        error: error.message || "Failed to get ratings",
+      });
     }
   }
 
@@ -75,12 +73,10 @@ export class ModerationController {
       );
       res.json({ success: true, data });
     } catch (error: any) {
-      res
-        .status(error.message === "Invalid trust level" ? 400 : 500)
-        .json({
-          success: false,
-          error: error.message || "Failed to update trust level",
-        });
+      res.status(error.message === "Invalid trust level" ? 400 : 500).json({
+        success: false,
+        error: error.message || "Failed to update trust level",
+      });
     }
   }
 }

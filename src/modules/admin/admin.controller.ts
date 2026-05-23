@@ -32,12 +32,10 @@ export class AdminController {
       );
       res.json({ success: true, data });
     } catch (error: any) {
-      res
-        .status(error.message.includes("Invalid") ? 400 : 500)
-        .json({
-          success: false,
-          error: error.message || "Failed to update trust level",
-        });
+      res.status(error.message.includes("Invalid") ? 400 : 500).json({
+        success: false,
+        error: error.message || "Failed to update trust level",
+      });
     }
   }
 
@@ -49,12 +47,10 @@ export class AdminController {
       );
       res.json({ success: true, data });
     } catch (error: any) {
-      res
-        .status(error.message.includes("must be") ? 400 : 500)
-        .json({
-          success: false,
-          error: error.message || "Failed to update quota",
-        });
+      res.status(error.message.includes("must be") ? 400 : 500).json({
+        success: false,
+        error: error.message || "Failed to update quota",
+      });
     }
   }
 
@@ -102,12 +98,10 @@ export class AdminController {
       );
       res.json({ success: true, data });
     } catch (error: any) {
-      res
-        .status(error.message.includes("Invalid") ? 400 : 500)
-        .json({
-          success: false,
-          error: error.message || "Failed to update plugin status",
-        });
+      res.status(error.message.includes("Invalid") ? 400 : 500).json({
+        success: false,
+        error: error.message || "Failed to update plugin status",
+      });
     }
   }
 
@@ -121,12 +115,10 @@ export class AdminController {
       );
       res.json({ success: true, data });
     } catch (error: any) {
-      res
-        .status(error.message.includes("Invalid") ? 400 : 500)
-        .json({
-          success: false,
-          error: error.message || "Failed to update version status",
-        });
+      res.status(error.message.includes("Invalid") ? 400 : 500).json({
+        success: false,
+        error: error.message || "Failed to update version status",
+      });
     }
   }
 
@@ -135,12 +127,10 @@ export class AdminController {
       const data = await adminService.toggleFeatured(String(req.params.id));
       res.json({ success: true, data });
     } catch (error: any) {
-      res
-        .status(500)
-        .json({
-          success: false,
-          error: error.message || "Failed to toggle featured",
-        });
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to toggle featured",
+      });
     }
   }
 }

@@ -8,12 +8,10 @@ export class VersionsController {
       const data = await versionsService.getVersions(String(req.params.slug));
       res.json({ success: true, data });
     } catch (error: any) {
-      res
-        .status(error.message === "Plugin not found" ? 404 : 500)
-        .json({
-          success: false,
-          error: error.message || "Failed to fetch versions",
-        });
+      res.status(error.message === "Plugin not found" ? 404 : 500).json({
+        success: false,
+        error: error.message || "Failed to fetch versions",
+      });
     }
   }
 
@@ -37,12 +35,10 @@ export class VersionsController {
           : error.message === "Not authorized"
             ? 403
             : 400;
-      res
-        .status(status)
-        .json({
-          success: false,
-          error: error.message || "Failed to create version",
-        });
+      res.status(status).json({
+        success: false,
+        error: error.message || "Failed to create version",
+      });
     }
   }
 
@@ -61,12 +57,10 @@ export class VersionsController {
         : error.message === "Not authorized"
           ? 403
           : 500;
-      res
-        .status(status)
-        .json({
-          success: false,
-          error: error.message || "Failed to delete version",
-        });
+      res.status(status).json({
+        success: false,
+        error: error.message || "Failed to delete version",
+      });
     }
   }
 }

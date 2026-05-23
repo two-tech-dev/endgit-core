@@ -30,12 +30,10 @@ export class PluginsController {
       const data = await pluginsService.getAnalytics(String(req.params.slug));
       res.json({ success: true, data });
     } catch (error: any) {
-      res
-        .status(error.message === "Plugin not found" ? 404 : 500)
-        .json({
-          success: false,
-          error: error.message || "Failed to get analytics",
-        });
+      res.status(error.message === "Plugin not found" ? 404 : 500).json({
+        success: false,
+        error: error.message || "Failed to get analytics",
+      });
     }
   }
 
@@ -46,12 +44,10 @@ export class PluginsController {
       );
       res.json({ success: true, data });
     } catch (error: any) {
-      res
-        .status(error.message === "No version found" ? 404 : 500)
-        .json({
-          success: false,
-          error: error.message || "Failed to get dependencies",
-        });
+      res.status(error.message === "No version found" ? 404 : 500).json({
+        success: false,
+        error: error.message || "Failed to get dependencies",
+      });
     }
   }
 
@@ -157,12 +153,10 @@ export class PluginsController {
           : error.message === "Plugin not found"
             ? 404
             : 500;
-      res
-        .status(status)
-        .json({
-          success: false,
-          error: error.message || "Failed to update plugin",
-        });
+      res.status(status).json({
+        success: false,
+        error: error.message || "Failed to update plugin",
+      });
     }
   }
 
@@ -177,12 +171,10 @@ export class PluginsController {
           : error.message === "Plugin not found"
             ? 404
             : 500;
-      res
-        .status(status)
-        .json({
-          success: false,
-          error: error.message || "Failed to delete plugin",
-        });
+      res.status(status).json({
+        success: false,
+        error: error.message || "Failed to delete plugin",
+      });
     }
   }
 
@@ -203,12 +195,10 @@ export class PluginsController {
           : error.message === "Plugin not found"
             ? 404
             : 400;
-      res
-        .status(status)
-        .json({
-          success: false,
-          error: error.message || "Failed to queue build",
-        });
+      res.status(status).json({
+        success: false,
+        error: error.message || "Failed to queue build",
+      });
     }
   }
 }

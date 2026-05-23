@@ -38,12 +38,10 @@ export class WebhooksController {
       res.json({ success: true, message: result.message, data: result.data });
     } catch (error: any) {
       console.error("[Webhook] ❌ Error:", error.message);
-      res
-        .status(error.message.includes("quota") ? 429 : 500)
-        .json({
-          success: false,
-          error: error.message || "Webhook processing failed",
-        });
+      res.status(error.message.includes("quota") ? 429 : 500).json({
+        success: false,
+        error: error.message || "Webhook processing failed",
+      });
     }
   }
 }
