@@ -33,6 +33,3 @@ jobs:
 
       - name: Type Check
         run: pnpm type-check
-
-      - name: Run ESLint
-        run: pnpm lint

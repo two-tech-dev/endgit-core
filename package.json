@@ -15,7 +15,6 @@
     "db:studio": "pnpm --filter @endgit/database studio",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "eslint src --ext .ts --fix",
     "type-check": "tsc --noEmit",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down"
