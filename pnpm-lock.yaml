@@ -53,6 +53,9 @@ importers:
       nodemailer:
         specifier: ^8.0.7
         version: 8.0.7
+      prettier:
+        specifier: ^3.8.3
+        version: 3.8.3
       semver:
         specifier: ^7.6.0
         version: 7.7.4
@@ -1165,6 +1168,11 @@ packages:
 
   path-to-regexp@0.1.13:
     resolution: {integrity: sha512-A/AGNMFN3c8bOlvV9RreMdrv7jsmF9XIfDeCd87+I8RNg6s78BhJxMu69NEMHBSJFxKidViTEdruRwEk/WIKqA==}
+
+  prettier@3.8.3:
+    resolution: {integrity: sha512-7igPTM53cGHMW8xWuVTydi2KO233VFiTNyF5hLJqpilHfmn8C8gPf+PS7dUT64YcXFbiMGZxS9pCSxL/Dxm/Jw==}
+    engines: {node: '>=14'}
+    hasBin: true
 
   prisma@5.22.0:
     resolution: {integrity: sha512-vtpjW3XuYCSnMsNVBjLMNkTj6OZbudcPPTPYHqX0CJfpcdWciI1dM8uHETwmDxxiqEwCIE6WvXucWUetJgfu/A==}
@@ -2746,6 +2754,8 @@ snapshots:
   path-expression-matcher@1.5.0: {}
 
   path-to-regexp@0.1.13: {}
+
+  prettier@3.8.3: {}
 
   prisma@5.22.0:
     dependencies:
