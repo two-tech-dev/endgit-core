@@ -33,6 +33,7 @@ export class PluginsService {
     if (category) where.tags = { has: category };
     if (type && ["PYTHON", "CPP", "BOTH"].includes(type))
       where.pluginType = type;
+    if (query.isFeatured === "true") where.isFeatured = true;
 
     // Filter by author (username or GitHub org from repoUrl)
     const author = query.author as string;
