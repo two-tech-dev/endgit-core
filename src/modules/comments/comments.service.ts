@@ -21,7 +21,7 @@ async function recalculateHeatScore(pluginId: string) {
   ]);
 
   const downloadsLast7d = analytics.reduce(
-    (sum, a) => sum + (a.downloads || 0),
+    (sum: number, a: { downloads: number | null }) => sum + (a.downloads || 0),
     0,
   );
   const heatScore = commentsLast7d * 5 + downloadsLast7d;
