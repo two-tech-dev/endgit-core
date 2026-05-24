@@ -48,17 +48,16 @@ export class UploadController {
       });
     } catch (error: any) {
       const message = error.message || "Upload failed";
-      const status =
-        message.includes("Not authorized")
-          ? 403
-          : message.includes("not found")
-            ? 404
-            : message.includes("required") ||
-                message.includes("Invalid") ||
-                message.includes("does not match") ||
-                message.includes("only for proprietary")
-              ? 400
-              : 500;
+      const status = message.includes("Not authorized")
+        ? 403
+        : message.includes("not found")
+          ? 404
+          : message.includes("required") ||
+              message.includes("Invalid") ||
+              message.includes("does not match") ||
+              message.includes("only for proprietary")
+            ? 400
+            : 500;
       res.status(status).json({ success: false, error: message });
     }
   }

@@ -86,7 +86,8 @@ function validateInputs(data: Record<string, any>): string | null {
     const tagList = typeof tags === "string" ? tags.split(",") : [];
     if (tagList.length > 5) return "Maximum 5 tags allowed.";
     for (const t of tagList) {
-      if (t.trim().length > 32) return "Each tag must be at most 32 characters.";
+      if (t.trim().length > 32)
+        return "Each tag must be at most 32 characters.";
     }
   }
   if (keywords) {
@@ -320,7 +321,9 @@ export class UploadService {
         return { plugin, build };
       } catch (err) {
         if (build) {
-          await prisma.build.delete({ where: { id: build.id } }).catch(() => {});
+          await prisma.build
+            .delete({ where: { id: build.id } })
+            .catch(() => {});
         }
         if (plugin) {
           await prisma.plugin
@@ -372,8 +375,7 @@ export class UploadService {
           throw new Error("Python artifact must be a .whl file.");
         }
         const valid = await verifyMagicNumber(artifact.path, ".whl");
-        if (!valid)
-          throw new Error("File content does not match .whl format.");
+        if (!valid) throw new Error("File content does not match .whl format.");
         artifactFiles.push({ file: artifact, ext: ".whl" });
       } else if (plugin.pluginType === "CPP") {
         const linuxFile = files["artifact_linux"]?.[0];

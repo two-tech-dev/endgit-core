@@ -57,7 +57,6 @@ export const proprietaryUploadRateLimit = rateLimit({
   keyGenerator: (req) => (req as any).user?.id || req.ip,
   message: {
     success: false,
-    error:
-      "Too many proprietary plugin uploads. Max 3 uploads per hour.",
+    error: "Too many proprietary plugin uploads. Max 3 uploads per hour.",
   },
 });
