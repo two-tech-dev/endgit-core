@@ -47,3 +47,17 @@ export const buildRateLimit = rateLimit({
     error: "Too many build requests. Max 5 builds per hour.",
   },
 });
+
+// Proprietary upload rate limiter — stricter limit for binary uploads
+export const proprietaryUploadRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // 3 proprietary uploads per hour per user
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => (req as any).user?.id || req.ip,
+  message: {
+    success: false,
+    error:
+      "Too many proprietary plugin uploads. Max 3 uploads per hour.",
+  },
+});

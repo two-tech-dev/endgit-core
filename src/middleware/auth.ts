@@ -127,6 +127,32 @@ export function requireReviewer(
 }
 
 /**
+ * Trusted-or-higher middleware — requires TRUSTED or ADMIN trust level
+ */
+export function requireTrusted(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: "Authentication required",
+    });
+  }
+
+  if (req.user.trustLevel === "NEW" || req.user.trustLevel === "FLAGGED") {
+    return res.status(403).json({
+      success: false,
+      error:
+        "Elevated trust level required. Earn trust through standard plugin submissions first.",
+    });
+  }
+
+  next();
+}
+
+/**
  * Generate JWT token for a user
  */
 export function generateToken(user: {
