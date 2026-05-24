@@ -152,6 +152,11 @@ export class AdminService {
     if (!plugin) throw new Error("Plugin not found");
 
     const oldStatus = plugin.status;
+
+    if (oldStatus === status) {
+      return plugin;
+    }
+
     const isNegative = NEGATIVE_STATUSES.includes(status);
 
     // Persist the status change + reason
@@ -244,6 +249,11 @@ export class AdminService {
     if (!version) throw new Error("Version not found");
 
     const oldStatus = version.status;
+
+    if (oldStatus === status) {
+      return version;
+    }
+
     const isNegative = status === "REJECTED";
 
     // Persist the status change + reason

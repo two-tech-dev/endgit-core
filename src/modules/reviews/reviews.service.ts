@@ -38,6 +38,28 @@ export class ReviewsService {
       data;
     if (!decision) throw new Error("decision is required");
 
+    // Idempotency guard: prevent duplicate reviews if plugin/version already in target state
+    if (decision === "APPROVED") {
+      if (versionId) {
+        const version = await prisma.version.findUnique({
+          where: { id: versionId },
+          select: { status: true },
+        });
+        if (version?.status === "APPROVED") {
+          throw new Error("This version is already approved");
+        }
+      } else {
+        const pendingVersion = await prisma.version.findFirst({
+          where: { pluginId: plugin.id, status: "PENDING" },
+          orderBy: { createdAt: "desc" },
+          select: { id: true, status: true },
+        });
+        if (!pendingVersion && plugin.status === "APPROVED") {
+          throw new Error("This plugin is already approved");
+        }
+      }
+    }
+
     const review = await prisma.review.create({
       data: {
         decision,
