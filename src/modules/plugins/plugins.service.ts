@@ -61,10 +61,12 @@ export class PluginsService {
     const orderBy: any = {};
     if (sort === "downloads") orderBy.downloads = order;
     else if (sort === "stars") orderBy.stars = order;
+    else if (sort === "comments") orderBy.commentCount = order;
+    else if (sort === "hot") orderBy.heatScore = "desc";
     else if (sort === "date") orderBy.createdAt = order;
     else if (sort === "name") orderBy.displayName = order;
-    else if (sort === "trending") orderBy.downloads = "desc";
-    else orderBy.downloads = "desc";
+    else if (sort === "trending") orderBy.heatScore = "desc";
+    else orderBy.heatScore = "desc";
 
     const [plugins, total] = await Promise.all([
       prisma.plugin.findMany({

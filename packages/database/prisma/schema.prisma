@@ -34,6 +34,7 @@ model User {
   reviews  Review[]
   reports  Report[]
   ratings  Rating[]
+  pluginComments PluginComment[]
   sessions Session[]
   accounts Account[]
 
@@ -104,6 +105,8 @@ model Plugin {
   pluginType      PluginType   @default(PYTHON)
   downloads       Int          @default(0)
   stars           Int          @default(0)
+  commentCount    Int          @default(0)
+  heatScore       Int          @default(0)
   status          PluginStatus @default(DRAFT)
   statusReason    String?      @db.Text
   // Scoring
@@ -126,6 +129,7 @@ model Plugin {
   reviews    Review[]
   reports        Report[]
   ratings        Rating[]
+  comments       PluginComment[]
   moderationLogs ModerationLog[]
   analytics  PluginAnalytics[]
 
@@ -403,6 +407,28 @@ model Rating {
   @@unique([userId, pluginId])
   @@index([pluginId])
   @@map("ratings")
+}
+
+// ── Plugin Comments / Discussion ─────────────────────────
+
+model PluginComment {
+  id        String   @id @default(cuid())
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+  pluginId String
+  plugin   Plugin @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+
+  parentId String?
+  parent   PluginComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  PluginComment[] @relation("CommentReplies")
+
+  @@index([pluginId, createdAt])
+  @@index([parentId])
+  @@map("plugin_comments")
 }
 
 // ── Moderation Audit Log ──────────────────────────────────

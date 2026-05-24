@@ -20,6 +20,7 @@ import { buildRouter } from "./modules/builds/builds.routes";
 import { githubRouter } from "./modules/github/github.routes";
 import { adminRouter } from "./modules/admin/admin.routes";
 import { ratingRouter } from "./modules/ratings/ratings.routes";
+import { commentsRouter } from "./modules/comments/comments.routes";
 import { submitRouter } from "./modules/submit/submit.routes";
 import { webhookRouter } from "./modules/webhooks/webhooks.routes";
 import { callbackRouter } from "./modules/callback/callback.routes";
@@ -91,6 +92,7 @@ app.use("/api/v1/builds", buildRouter);
 app.use("/api/v1/github", githubRouter);
 app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/ratings", ratingRouter);
+app.use("/api/v1/comments", commentsRouter);
 app.use("/api/v1/submit", submitRouter);
 app.use("/api/v1/webhooks", webhookRouter);
 app.use("/api/v1/builds", callbackRouter); // GitHub Actions artifact callbacks
@@ -123,6 +125,8 @@ app.use((_req, res) => {
 
 // ── Start ────────────────────────────────────────────────
 
+import { recalculateAllHeatScores } from "./modules/comments/comments.service";
+
 app.listen(PORT, () => {
   console.log(`
   ╔═══════════════════════════════════════════════════╗
@@ -132,6 +136,9 @@ app.listen(PORT, () => {
   ║                                                   ║
   ╚═══════════════════════════════════════════════════╝
   `);
+
+  recalculateAllHeatScores().catch(() => {});
+  setInterval(() => recalculateAllHeatScores().catch(() => {}), 60 * 60 * 1000);
 });
 
 export default app;
