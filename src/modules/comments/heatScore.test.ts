@@ -9,10 +9,7 @@ describe("recalculateAllHeatScores", () => {
 
   it("recalculates heat scores for all approved plugins", async () => {
     const mod = await import("./comments.service");
-    mockPrisma.plugin.findMany.mockResolvedValue([
-      { id: "p1" },
-      { id: "p2" },
-    ]);
+    mockPrisma.plugin.findMany.mockResolvedValue([{ id: "p1" }, { id: "p2" }]);
     mockPrisma.pluginComment.count.mockResolvedValue(5);
     mockPrisma.pluginAnalytics.findMany.mockResolvedValue([
       { downloads: 100 },

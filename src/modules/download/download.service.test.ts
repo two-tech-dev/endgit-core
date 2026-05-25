@@ -20,7 +20,10 @@ describe("DownloadService", () => {
     });
 
     it("throws when version not found", async () => {
-      mockPrisma.plugin.findUnique.mockResolvedValue({ id: "p1", slug: "test" });
+      mockPrisma.plugin.findUnique.mockResolvedValue({
+        id: "p1",
+        slug: "test",
+      });
       mockPrisma.version.findUnique.mockResolvedValue(null);
       await expect(
         service.downloadPluginVersion("test", "999", "127.0.0.1"),
@@ -35,7 +38,8 @@ describe("DownloadService", () => {
       });
       mockPrisma.version.findUnique.mockResolvedValue({
         id: "v1",
-        fileUrl: '{"linux":"artifacts/test/1/test.so","win":"artifacts/test/1/test.dll"}',
+        fileUrl:
+          '{"linux":"artifacts/test/1/test.so","win":"artifacts/test/1/test.dll"}',
         fileName: "test",
         fileHash: "abc",
       });

@@ -25,9 +25,9 @@ describe("SubmitService", () => {
         status: "SUCCESS",
         plugin: { authorId: "user1" },
       });
-      await expect(
-        service.submitBuild("b1", {}, "user2"),
-      ).rejects.toThrow("You can only submit your own builds");
+      await expect(service.submitBuild("b1", {}, "user2")).rejects.toThrow(
+        "You can only submit your own builds",
+      );
     });
 
     it("throws when build is not successful", async () => {
@@ -36,9 +36,9 @@ describe("SubmitService", () => {
         status: "FAILED",
         plugin: { authorId: "user1" },
       });
-      await expect(
-        service.submitBuild("b1", {}, "user1"),
-      ).rejects.toThrow("Only successful builds can be submitted for review");
+      await expect(service.submitBuild("b1", {}, "user1")).rejects.toThrow(
+        "Only successful builds can be submitted for review",
+      );
     });
 
     it("throws when version and displayName are missing", async () => {

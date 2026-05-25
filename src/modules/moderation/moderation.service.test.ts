@@ -96,7 +96,12 @@ describe("ModerationService", () => {
         score: 4,
       });
 
-      const result = await service.ratePlugin("test-plugin", "user1", 4, "Good");
+      const result = await service.ratePlugin(
+        "test-plugin",
+        "user1",
+        4,
+        "Good",
+      );
       expect(result.score).toBe(4);
     });
   });

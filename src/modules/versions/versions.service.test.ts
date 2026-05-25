@@ -67,12 +67,17 @@ describe("VersionsService", () => {
       });
       mockPrisma.plugin.update.mockResolvedValue({});
 
-      const result = await service.createVersion("test-plugin", "admin1", "ADMIN", {
-        version: "1.0.0",
-        fileUrl: "https://example.com/file.zip",
-        fileName: "file.zip",
-        fileSize: 1024,
-      });
+      const result = await service.createVersion(
+        "test-plugin",
+        "admin1",
+        "ADMIN",
+        {
+          version: "1.0.0",
+          fileUrl: "https://example.com/file.zip",
+          fileName: "file.zip",
+          fileSize: 1024,
+        },
+      );
       expect(result.id).toBe("v1");
     });
 
@@ -116,10 +121,15 @@ describe("VersionsService", () => {
       mockPrisma.build.update.mockResolvedValue({});
       mockPrisma.plugin.update.mockResolvedValue({});
 
-      const result = await service.createVersion("test-plugin", "user1", "NEW", {
-        version: "1.0.0",
-        buildId: "b1",
-      });
+      const result = await service.createVersion(
+        "test-plugin",
+        "user1",
+        "NEW",
+        {
+          version: "1.0.0",
+          buildId: "b1",
+        },
+      );
       expect(result.id).toBe("v1");
     });
 

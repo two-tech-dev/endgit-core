@@ -87,9 +87,9 @@ describe("LocalStorage", () => {
     });
 
     it("rejects empty key", async () => {
-      await expect(
-        storage.upload("", Buffer.from("hack")),
-      ).rejects.toThrow("Invalid storage key");
+      await expect(storage.upload("", Buffer.from("hack"))).rejects.toThrow(
+        "Invalid storage key",
+      );
     });
 
     it("allows valid relative paths", async () => {

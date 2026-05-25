@@ -52,9 +52,9 @@ describe("GithubService", () => {
   describe("disableCI", () => {
     it("throws when plugin not found", async () => {
       mockPrisma.plugin.findFirst.mockResolvedValue(null);
-      await expect(
-        service.disableCI("user-1", "nonexistent"),
-      ).rejects.toThrow("Plugin not found");
+      await expect(service.disableCI("user-1", "nonexistent")).rejects.toThrow(
+        "Plugin not found",
+      );
     });
 
     it("clears webhookId", async () => {
@@ -86,11 +86,7 @@ describe("GithubService", () => {
         json: () => Promise.resolve({ id: 12345 }),
       });
 
-      const id = await service.createGitHubWebhook(
-        "gho_test",
-        "owner",
-        "repo",
-      );
+      const id = await service.createGitHubWebhook("gho_test", "owner", "repo");
       expect(id).toBe(12345);
     });
 
@@ -101,22 +97,14 @@ describe("GithubService", () => {
         json: () => Promise.resolve({ message: "Validation Failed" }),
       });
 
-      const id = await service.createGitHubWebhook(
-        "gho_test",
-        "owner",
-        "repo",
-      );
+      const id = await service.createGitHubWebhook("gho_test", "owner", "repo");
       expect(id).toBeNull();
     });
 
     it("returns null on network error", async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
 
-      const id = await service.createGitHubWebhook(
-        "gho_test",
-        "owner",
-        "repo",
-      );
+      const id = await service.createGitHubWebhook("gho_test", "owner", "repo");
       expect(id).toBeNull();
     });
   });

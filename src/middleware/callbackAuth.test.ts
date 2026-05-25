@@ -29,7 +29,9 @@ describe("callbackAuth middleware", () => {
   });
 
   it("returns 401 for invalid token", () => {
-    const { req, res, next } = createMockReqResNext("Bearer wrong-token-here-12345678901234567890");
+    const { req, res, next } = createMockReqResNext(
+      "Bearer wrong-token-here-12345678901234567890",
+    );
     requireCallbackAuth(req, res, next);
     expect(res.status).toHaveBeenCalledWith(401);
     expect(next).not.toHaveBeenCalled();

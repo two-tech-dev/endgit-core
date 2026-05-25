@@ -26,9 +26,9 @@ describe("WebhooksService", () => {
 
     it("returns false for an invalid signature", () => {
       const payload = Buffer.from('{"test": true}');
-      expect(
-        service.verifySignature(payload, "sha256=invalidsignature"),
-      ).toBe(false);
+      expect(service.verifySignature(payload, "sha256=invalidsignature")).toBe(
+        false,
+      );
     });
 
     it("returns false when signature is undefined", () => {

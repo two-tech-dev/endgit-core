@@ -18,7 +18,8 @@ describe("normalizeDownloadArtifactKey", () => {
   });
 
   it("strips the /api/v1/download/file/ prefix", () => {
-    const key = "/api/v1/download/file/artifacts/my-plugin/1/endstone_my-plugin.so";
+    const key =
+      "/api/v1/download/file/artifacts/my-plugin/1/endstone_my-plugin.so";
     expect(normalizeDownloadArtifactKey(key)).toBe(
       "artifacts/my-plugin/1/endstone_my-plugin.so",
     );

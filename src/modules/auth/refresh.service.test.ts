@@ -41,7 +41,11 @@ describe("RefreshService", () => {
 
     it("returns null when user not found", async () => {
       mockRedisInstance.get.mockResolvedValue(
-        JSON.stringify({ userId: "user-1", username: "test", trustLevel: "NEW" }),
+        JSON.stringify({
+          userId: "user-1",
+          username: "test",
+          trustLevel: "NEW",
+        }),
       );
       mockRedisInstance.expire.mockResolvedValue(1);
       mockPrisma.user.findUnique.mockResolvedValue(null);
@@ -52,7 +56,11 @@ describe("RefreshService", () => {
 
     it("rotates token and returns new tokens", async () => {
       mockRedisInstance.get.mockResolvedValue(
-        JSON.stringify({ userId: "user-1", username: "test", trustLevel: "NEW" }),
+        JSON.stringify({
+          userId: "user-1",
+          username: "test",
+          trustLevel: "NEW",
+        }),
       );
       mockRedisInstance.expire.mockResolvedValue(1);
       mockPrisma.user.findUnique.mockResolvedValue({

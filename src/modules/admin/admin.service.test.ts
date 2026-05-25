@@ -120,9 +120,9 @@ describe("AdminService", () => {
 
   describe("updatePluginStatus", () => {
     it("throws on invalid status", async () => {
-      await expect(
-        service.updatePluginStatus("p1", "INVALID"),
-      ).rejects.toThrow("Invalid plugin status");
+      await expect(service.updatePluginStatus("p1", "INVALID")).rejects.toThrow(
+        "Invalid plugin status",
+      );
     });
 
     it("throws when plugin not found", async () => {

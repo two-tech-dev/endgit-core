@@ -60,10 +60,7 @@ describe("cache utils", () => {
 
   describe("cacheDelPattern", () => {
     it("deletes matching keys", async () => {
-      mockRedisInstance.keys.mockResolvedValue([
-        "cache:key1",
-        "cache:key2",
-      ]);
+      mockRedisInstance.keys.mockResolvedValue(["cache:key1", "cache:key2"]);
       mockRedisInstance.del.mockResolvedValue(2);
 
       await cacheDelPattern("key*");

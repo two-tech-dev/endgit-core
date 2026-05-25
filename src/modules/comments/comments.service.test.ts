@@ -66,7 +66,11 @@ describe("CommentsService", () => {
       });
       mockPrisma.plugin.update.mockResolvedValue({});
 
-      const result = await service.createComment("test-plugin", "user1", "Hello");
+      const result = await service.createComment(
+        "test-plugin",
+        "user1",
+        "Hello",
+      );
       expect(result.body).toBe("Hello");
       expect(mockPrisma.plugin.update).toHaveBeenCalledWith({
         where: { id: "p1" },
@@ -148,9 +152,9 @@ describe("CommentsService", () => {
         _count: { replies: 0 },
       });
 
-      await expect(
-        service.deleteComment("c1", "user2", false),
-      ).rejects.toThrow("Not authorized");
+      await expect(service.deleteComment("c1", "user2", false)).rejects.toThrow(
+        "Not authorized",
+      );
     });
 
     it("allows admin to delete any comment", async () => {

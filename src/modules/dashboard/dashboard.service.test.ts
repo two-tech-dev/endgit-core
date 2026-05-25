@@ -74,9 +74,7 @@ describe("DashboardService", () => {
 
   describe("getMyStats", () => {
     it("returns user stats", async () => {
-      mockPrisma.plugin.count
-        .mockResolvedValueOnce(5)
-        .mockResolvedValueOnce(2);
+      mockPrisma.plugin.count.mockResolvedValueOnce(5).mockResolvedValueOnce(2);
       mockPrisma.plugin.aggregate.mockResolvedValue({
         _sum: { downloads: 1000 },
       });
