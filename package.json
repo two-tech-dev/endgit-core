@@ -16,6 +16,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down"
   },
@@ -52,7 +55,9 @@
     "@types/multer": "^2.1.0",
     "@types/nodemailer": "^8.0.0",
     "@types/semver": "^7.5.8",
-    "typescript": "^5.6.0"
+    "@vitest/coverage-v8": "^4.1.7",
+    "typescript": "^5.6.0",
+    "vitest": "^4.1.7"
   },
   "license": "AGPL-3.0-only",
   "repository": {

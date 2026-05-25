@@ -1,6 +1,7 @@
 # EndGit Core
 
 [![Code Quality](https://github.com/two-tech-dev/endgit-core/actions/workflows/code-quality.yml/badge.svg)](https://github.com/two-tech-dev/endgit-core/actions/workflows/code-quality.yml)
+[![Tests](https://github.com/two-tech-dev/endgit-core/actions/workflows/tests.yml/badge.svg)](https://github.com/two-tech-dev/endgit-core/actions/workflows/tests.yml)
 
 **CI/CD + Plugin Marketplace API for Endstone**
 

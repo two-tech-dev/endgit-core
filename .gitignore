@@ -30,5 +30,8 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# Test coverage
+coverage/
+
 # AI Agents
 .agents
