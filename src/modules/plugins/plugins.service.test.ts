@@ -123,6 +123,10 @@ describe("PluginsService", () => {
         author: { username: "author", displayName: "Author", avatarUrl: null },
       };
       mockPrisma.plugin.findUnique.mockResolvedValue(mockPlugin);
+      mockPrisma.rating.aggregate.mockResolvedValue({
+        _count: 2,
+        _avg: { score: 4.5 },
+      });
 
       const result = await service.getBySlug("test");
       expect(result.averageRating).toBe(4.5);
