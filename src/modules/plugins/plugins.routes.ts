@@ -6,6 +6,7 @@ import { pluginsController } from "./plugins.controller";
 export const pluginsRouter: Router = Router();
 
 pluginsRouter.get("/", optionalAuth, pluginsController.listPlugins);
+pluginsRouter.get("/home", pluginsController.getHome);
 pluginsRouter.get("/trending", pluginsController.getTrending);
 pluginsRouter.get("/latest", pluginsController.getLatest);
 pluginsRouter.get("/stats/global", pluginsController.getGlobalStats);

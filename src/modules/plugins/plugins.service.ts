@@ -75,7 +75,20 @@ export class PluginsService {
         orderBy: sortParam ? orderBy : [{ isFeatured: "desc" }, orderBy],
         skip: (page - 1) * pageSize,
         take: pageSize,
-        include: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          displayName: true,
+          description: true,
+          iconUrl: true,
+          repoUrl: true,
+          pluginType: true,
+          downloads: true,
+          commentCount: true,
+          heatScore: true,
+          isFeatured: true,
+          createdAt: true,
           author: {
             select: { username: true, displayName: true, avatarUrl: true },
           },
@@ -146,7 +159,20 @@ export class PluginsService {
       where: { status: "APPROVED" },
       orderBy: { downloads: "desc" },
       take: 12,
-      include: {
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        displayName: true,
+        description: true,
+        iconUrl: true,
+        repoUrl: true,
+        pluginType: true,
+        downloads: true,
+        commentCount: true,
+        heatScore: true,
+        isFeatured: true,
+        createdAt: true,
         author: {
           select: { username: true, displayName: true, avatarUrl: true },
         },
@@ -181,7 +207,20 @@ export class PluginsService {
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * pageSize,
         take: pageSize,
-        include: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          displayName: true,
+          description: true,
+          iconUrl: true,
+          repoUrl: true,
+          pluginType: true,
+          downloads: true,
+          commentCount: true,
+          heatScore: true,
+          isFeatured: true,
+          createdAt: true,
           author: {
             select: { username: true, displayName: true, avatarUrl: true },
           },
@@ -207,6 +246,76 @@ export class PluginsService {
       pageSize,
       total,
       totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  async getHome() {
+    const cardSelect = {
+      id: true,
+      slug: true,
+      name: true,
+      displayName: true,
+      description: true,
+      iconUrl: true,
+      repoUrl: true,
+      pluginType: true,
+      downloads: true,
+      commentCount: true,
+      heatScore: true,
+      isFeatured: true,
+      createdAt: true,
+      author: {
+        select: { username: true, displayName: true, avatarUrl: true },
+      },
+      versions: {
+        where: { status: "APPROVED" as const },
+        orderBy: { createdAt: "desc" as const },
+        select: { version: true, isPreRelease: true },
+        take: 1,
+      },
+    };
+
+    const where = { status: "APPROVED" as const };
+
+    const [hot, newest, top, featured] = await Promise.all([
+      prisma.plugin.findMany({
+        where,
+        orderBy: [{ isFeatured: "desc" }, { heatScore: "desc" }],
+        take: 4,
+        select: cardSelect,
+      }),
+      prisma.plugin.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: cardSelect,
+      }),
+      prisma.plugin.findMany({
+        where,
+        orderBy: { downloads: "desc" },
+        take: 5,
+        select: cardSelect,
+      }),
+      prisma.plugin.findMany({
+        where: { ...where, isFeatured: true },
+        orderBy: { heatScore: "desc" },
+        take: 4,
+        select: cardSelect,
+      }),
+    ]);
+
+    const mapPlugin = (p: any) => ({
+      ...p,
+      latestVersion: p.versions[0]?.version || null,
+      isPreRelease: p.versions[0]?.isPreRelease || false,
+      versions: undefined,
+    });
+
+    return {
+      hotPlugins: hot.map(mapPlugin),
+      newPlugins: newest.map(mapPlugin),
+      topPlugins: top.map(mapPlugin),
+      featuredPlugins: featured.map(mapPlugin),
     };
   }
 
@@ -263,11 +372,18 @@ export class PluginsService {
             vtScanDate: true,
           },
         },
-        ratings: { select: { score: true } },
       },
     });
 
     if (!plugin) throw new Error("Plugin not found");
+
+    const ratingAgg = await prisma.rating.aggregate({
+      where: { pluginId: plugin.id },
+      _avg: { score: true },
+      _count: true,
+    });
+    const totalRatings = ratingAgg._count;
+    const averageRating = Math.round((ratingAgg._avg.score || 0) * 10) / 10;
 
     const isAuthor = user?.id === plugin.authorId;
     const isAdmin = user?.trustLevel === "ADMIN";
@@ -294,12 +410,6 @@ export class PluginsService {
       isAuthor || isAdmin
         ? plugin.versions
         : plugin.versions.filter((v: any) => v.status === "APPROVED");
-    const totalRatings = plugin.ratings.length;
-    const averageRating =
-      totalRatings > 0
-        ? plugin.ratings.reduce((sum: number, r: any) => sum + r.score, 0) /
-          totalRatings
-        : 0;
     const latestApprovedVersion =
       visibleVersions.find((v: any) => v.isLatest)?.version ||
       visibleVersions[0]?.version ||
@@ -335,8 +445,7 @@ export class PluginsService {
     return {
       ...plugin,
       versions: versionsWithVT,
-      ratings: undefined,
-      averageRating: Math.round(averageRating * 10) / 10,
+      averageRating,
       totalRatings,
       latestVersion: latestApprovedVersion,
     };

@@ -25,6 +25,18 @@ export class PluginsController {
     }
   }
 
+  async getHome(req: Request, res: Response) {
+    try {
+      const data = await pluginsService.getHome();
+      res.json({ success: true, data });
+    } catch (error: any) {
+      console.error("Home data error:", error);
+      res
+        .status(500)
+        .json({ success: false, error: "Failed to fetch home data" });
+    }
+  }
+
   async getAnalytics(req: Request, res: Response) {
     try {
       const data = await pluginsService.getAnalytics(String(req.params.slug));
