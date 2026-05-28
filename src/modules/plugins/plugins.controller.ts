@@ -132,6 +132,22 @@ export class PluginsController {
     }
   }
 
+  async getVersionDescription(req: Request, res: Response) {
+    try {
+      const data = await pluginsService.getVersionDescription(
+        String(req.params.slug),
+        String(req.params.version),
+      );
+      res.json({ success: true, data });
+    } catch (error: any) {
+      const status = error.message === "Plugin not found" || error.message === "Version not found" ? 404 : 500;
+      res.status(status).json({
+        success: false,
+        error: error.message || "Failed to get version description",
+      });
+    }
+  }
+
   async createPlugin(req: AuthRequest, res: Response) {
     try {
       const data = await pluginsService.createPlugin(req.body, req.user!.id);

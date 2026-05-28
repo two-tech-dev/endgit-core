@@ -105,6 +105,7 @@ export class PluginsService {
 
     const data = plugins.map((p: any) => ({
       ...p,
+      description: p.description?.length > 200 ? p.description.slice(0, 200) + '...' : p.description,
       latestVersion: p.versions[0]?.version || null,
       isPreRelease: p.versions[0]?.isPreRelease || false,
       versions: undefined,
@@ -187,6 +188,7 @@ export class PluginsService {
 
     return plugins.map((p: any) => ({
       ...p,
+      description: p.description?.length > 200 ? p.description.slice(0, 200) + '...' : p.description,
       latestVersion: p.versions[0]?.version || null,
       isPreRelease: p.versions[0]?.isPreRelease || false,
       versions: undefined,
@@ -238,6 +240,7 @@ export class PluginsService {
     return {
       plugins: plugins.map((p: any) => ({
         ...p,
+        description: p.description?.length > 200 ? p.description.slice(0, 200) + '...' : p.description,
         latestVersion: p.versions[0]?.version || null,
         isPreRelease: p.versions[0]?.isPreRelease || false,
         versions: undefined,
@@ -306,6 +309,7 @@ export class PluginsService {
 
     const mapPlugin = (p: any) => ({
       ...p,
+      description: p.description?.length > 200 ? p.description.slice(0, 200) + '...' : p.description,
       latestVersion: p.versions[0]?.version || null,
       isPreRelease: p.versions[0]?.isPreRelease || false,
       versions: undefined,
@@ -336,7 +340,29 @@ export class PluginsService {
   async getBySlug(slug: string, user?: any) {
     const plugin = await prisma.plugin.findUnique({
       where: { slug },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        displayName: true,
+        description: true,
+        longDescription: true,
+        iconUrl: true,
+        repoUrl: true,
+        license: true,
+        tags: true,
+        keywords: true,
+        pluginType: true,
+        downloads: true,
+        commentCount: true,
+        heatScore: true,
+        isFeatured: true,
+        qualityBadge: true,
+        createdAt: true,
+        updatedAt: true,
+        // Needed for server-side visibility logic only
+        authorId: true,
+        status: true,
         author: {
           select: {
             username: true,
@@ -351,7 +377,6 @@ export class PluginsService {
             id: true,
             version: true,
             changelog: true,
-            longDescription: true,
             fileName: true,
             fileSize: true,
             downloads: true,
@@ -446,13 +471,45 @@ export class PluginsService {
       };
     });
 
+    // Strip internal fields from response
+    const { authorId, status, ...pluginData } = plugin;
+
     return {
-      ...plugin,
+      ...pluginData,
       versions: versionsWithVT,
       averageRating,
       totalRatings,
       latestVersion: latestApprovedVersion,
     };
+  }
+
+  async getVersionDescription(slug: string, version: string) {
+    const plugin = await prisma.plugin.findUnique({
+      where: { slug },
+      select: { id: true, status: true },
+    });
+
+    if (!plugin || plugin.status !== "APPROVED") {
+      throw new Error("Plugin not found");
+    }
+
+    const versionRecord = await prisma.version.findFirst({
+      where: {
+        pluginId: plugin.id,
+        version,
+        status: "APPROVED",
+      },
+      select: {
+        longDescription: true,
+        changelog: true,
+      },
+    });
+
+    if (!versionRecord) {
+      throw new Error("Version not found");
+    }
+
+    return versionRecord;
   }
 
   async createPlugin(data: any, userId: string) {
