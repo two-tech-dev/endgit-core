@@ -377,13 +377,15 @@ export class PluginsService {
 
     if (!plugin) throw new Error("Plugin not found");
 
-    const ratingAgg = await prisma.rating.aggregate({
-      where: { pluginId: plugin.id },
-      _avg: { score: true },
-      _count: true,
-    });
-    const totalRatings = ratingAgg._count;
-    const averageRating = Math.round((ratingAgg._avg.score || 0) * 10) / 10;
+    const ratingAgg = await prisma.rating
+      .aggregate({
+        where: { pluginId: plugin.id },
+        _avg: { score: true },
+        _count: true,
+      })
+      .catch(() => null);
+    const totalRatings = ratingAgg?._count || 0;
+    const averageRating = Math.round((ratingAgg?._avg?.score || 0) * 10) / 10;
 
     const isAuthor = user?.id === plugin.authorId;
     const isAdmin = user?.trustLevel === "ADMIN";
