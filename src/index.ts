@@ -5,9 +5,11 @@
 
 import "dotenv/config";
 import express from "express";
+import compression from "compression";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import zlib from "zlib";
 import { publicRateLimit } from "./middleware/rateLimit";
 import { pluginsRouter } from "./modules/plugins/plugins.routes";
 import { versionsRouter } from "./modules/versions/versions.routes";
@@ -30,6 +32,25 @@ app.set("trust proxy", 1);
 const PORT = process.env.PORT || process.env.API_PORT || 4000;
 
 // ── Middleware ────────────────────────────────────────────
+
+app.use(
+  compression({
+    level: zlib.constants.Z_DEFAULT_COMPRESSION,
+    threshold: 1024, // Only compress responses larger than 1KB
+    filter: (req: express.Request, res: express.Response) => {
+      if (req.headers["x-no-compression"]) return false;
+      return compression.filter(req, res);
+    },
+    brotli: {
+      enabled: true,
+      zlib: {
+        params: {
+          [zlib.constants.BROTLI_PARAM_QUALITY]: 4,
+        },
+      },
+    },
+  } as any),
+);
 
 app.use(
   helmet({
