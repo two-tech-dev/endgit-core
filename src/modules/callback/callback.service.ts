@@ -125,6 +125,8 @@ export class CallbackService {
 
     if (!build) return;
 
+    if (build.status === "SUCCESS" || build.status === "FAILED") return;
+
     const winDone =
       build.winBuildStatus === "SUCCESS" || build.winBuildStatus === "FAILED";
     const linuxDone =
