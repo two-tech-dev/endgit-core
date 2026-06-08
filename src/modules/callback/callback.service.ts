@@ -167,12 +167,16 @@ export class CallbackService {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://endgit.dev";
         const buildLogLink = `${baseUrl}/builds/${buildId}`;
 
+        const commit = build.commitHash || "HEAD";
+        const shortCommit = commit.slice(0, 7);
+        const branch = build.branch || "main";
+        const buildState = anySuccess ? "✅ Built" : "❌ Failed";
         const linuxLink = build.artifactUrlLinux
-          ? `[🐧 Download .so](${baseUrl}${build.artifactUrlLinux})`
-          : "❌ Failed";
+          ? `[Linux .so](${baseUrl}${build.artifactUrlLinux})`
+          : "Linux failed";
         const winLink = build.artifactUrlWin
-          ? `[🪟 Download .dll](${baseUrl}${build.artifactUrlWin})`
-          : "❌ Failed";
+          ? `[Windows .dll](${baseUrl}${build.artifactUrlWin})`
+          : "Windows failed";
 
         const embed = {
           title: `Plugin ${build.plugin.displayName || build.plugin.slug}, Build #${build.buildNumber}`,
@@ -185,14 +189,7 @@ export class CallbackService {
               "EndGit Author",
             icon_url: build.plugin.author?.avatarUrl || undefined,
           },
-          description: `In branch **${build.branch || "main"}**:\n[${build.commitHash?.slice(0, 7) || "HEAD"}](${build.plugin.repoUrl}/commit/${build.commitHash})\n\n${build.commitMessage ? `> ${build.commitMessage}` : ""}`,
-          fields: [
-            { name: "🐧 Linux Build", value: linuxLink, inline: true },
-            { name: "🪟 Windows Build", value: winLink, inline: true },
-          ],
-          footer: {
-            text: "⚠️ This is a development build. Don't download it unless you are sure this plugin works!",
-          },
+          description: `${buildState} on **${branch}** @ [${shortCommit}](${build.plugin.repoUrl}/commit/${commit})\n${linuxLink} • ${winLink}`,
           timestamp: new Date().toISOString(),
         };
 
@@ -203,8 +200,8 @@ export class CallbackService {
             username: "EndGit-CI",
             avatar_url: "https://github.com/fluidicon.png",
             content: anySuccess
-              ? "A new cross-platform C++ build has been completed!"
-              : "❌ A cross-platform C++ build has failed!",
+              ? "✅ C++ build completed"
+              : "❌ C++ build failed",
             embeds: [embed],
           }),
         });

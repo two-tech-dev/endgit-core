@@ -84,6 +84,13 @@ export class ReviewsService {
         where: { id: versionId },
         data: { status: newVersionStatus },
       });
+
+      if (newVersionStatus === "APPROVED") {
+        await prisma.plugin.update({
+          where: { id: plugin.id },
+          data: { updatedAt: new Date() },
+        });
+      }
     } else {
       let newPluginStatus: string;
       if (decision === "APPROVED") newPluginStatus = "APPROVED";
@@ -133,6 +140,11 @@ export class ReviewsService {
         });
 
         if (newVersionStatus === "APPROVED") {
+          await prisma.plugin.update({
+            where: { id: plugin.id },
+            data: { updatedAt: new Date() },
+          });
+
           const fullPlugin = await prisma.plugin.findUnique({
             where: { id: plugin.id },
             include: { author: true },

@@ -268,6 +268,13 @@ export class AdminService {
       select: { id: true, version: true, status: true, statusReason: true },
     });
 
+    if (status === "APPROVED") {
+      await prisma.plugin.update({
+        where: { id: version.pluginId },
+        data: { updatedAt: new Date() },
+      });
+    }
+
     // Create audit log entry
     if (adminUser) {
       await prisma.moderationLog.create({
