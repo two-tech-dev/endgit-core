@@ -78,19 +78,17 @@ export class PluginsService {
         select: {
           id: true,
           slug: true,
-          name: true,
           displayName: true,
           description: true,
           iconUrl: true,
           repoUrl: true,
-          pluginType: true,
           downloads: true,
           commentCount: true,
           heatScore: true,
           isFeatured: true,
           createdAt: true,
           author: {
-            select: { username: true, displayName: true, avatarUrl: true },
+            select: { username: true, displayName: true },
           },
           versions: {
             where: { status: "APPROVED" },
@@ -163,19 +161,17 @@ export class PluginsService {
       select: {
         id: true,
         slug: true,
-        name: true,
         displayName: true,
         description: true,
         iconUrl: true,
         repoUrl: true,
-        pluginType: true,
         downloads: true,
         commentCount: true,
         heatScore: true,
         isFeatured: true,
         createdAt: true,
         author: {
-          select: { username: true, displayName: true, avatarUrl: true },
+          select: { username: true, displayName: true },
         },
         versions: {
           where: { status: "APPROVED" },
@@ -212,19 +208,17 @@ export class PluginsService {
         select: {
           id: true,
           slug: true,
-          name: true,
           displayName: true,
           description: true,
           iconUrl: true,
           repoUrl: true,
-          pluginType: true,
           downloads: true,
           commentCount: true,
           heatScore: true,
           isFeatured: true,
           createdAt: true,
           author: {
-            select: { username: true, displayName: true, avatarUrl: true },
+            select: { username: true, displayName: true },
           },
           versions: {
             where: { status: "APPROVED" },
@@ -256,19 +250,17 @@ export class PluginsService {
     const cardSelect = {
       id: true,
       slug: true,
-      name: true,
       displayName: true,
       description: true,
       iconUrl: true,
       repoUrl: true,
-      pluginType: true,
       downloads: true,
       commentCount: true,
       heatScore: true,
       isFeatured: true,
       createdAt: true,
       author: {
-        select: { username: true, displayName: true, avatarUrl: true },
+        select: { username: true, displayName: true },
       },
       versions: {
         where: { status: "APPROVED" as const },
