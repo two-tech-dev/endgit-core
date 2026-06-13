@@ -25,8 +25,9 @@ export class GithubController {
       const perPage = parseInt(req.query.per_page as string) || 30;
       const org = req.query.org as string | undefined;
       const search = (req.query.search as string) || undefined;
+      const filter = (req.query.filter as string) || undefined;
 
-      const cacheKey = `gh:repos:${req.user!.id}:${page}:${perPage}:${org || ""}:${search || ""}`;
+      const cacheKey = `gh:repos:${req.user!.id}:${page}:${perPage}:${org || ""}:${search || ""}:${filter || ""}`;
       const cached = await cacheGet<any>(cacheKey);
       if (cached) {
         res.set("Cache-Control", "private, max-age=30");
@@ -40,6 +41,7 @@ export class GithubController {
           perPage,
           org,
           search,
+          filter
         );
 
       const payload = {
