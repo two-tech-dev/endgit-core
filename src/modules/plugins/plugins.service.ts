@@ -90,7 +90,7 @@ export class PluginsService {
           isFeatured: true,
           createdAt: true,
           author: {
-            select: { username: true, displayName: true, avatarUrl: true },
+            select: { id: true, username: true, displayName: true, avatarUrl: true },
           },
           versions: {
             where: { status: "APPROVED" },
@@ -175,7 +175,7 @@ export class PluginsService {
         isFeatured: true,
         createdAt: true,
         author: {
-          select: { username: true, displayName: true, avatarUrl: true },
+          select: { id: true, username: true, displayName: true, avatarUrl: true },
         },
         versions: {
           where: { status: "APPROVED" },
@@ -224,7 +224,7 @@ export class PluginsService {
           isFeatured: true,
           createdAt: true,
           author: {
-            select: { username: true, displayName: true, avatarUrl: true },
+            select: { id: true, username: true, displayName: true, avatarUrl: true },
           },
           versions: {
             where: { status: "APPROVED" },
@@ -253,6 +253,13 @@ export class PluginsService {
   }
 
   async getHome() {
+    try {
+      const cached = await connection.get("cache:home");
+      if (cached) return JSON.parse(cached);
+    } catch (e) {
+      console.error("Redis cache error:", e);
+    }
+
     const cardSelect = {
       id: true,
       slug: true,
@@ -268,7 +275,7 @@ export class PluginsService {
       isFeatured: true,
       createdAt: true,
       author: {
-        select: { username: true, displayName: true, avatarUrl: true },
+        select: { id: true, username: true, displayName: true, avatarUrl: true },
       },
       versions: {
         where: { status: "APPROVED" as const },
@@ -315,12 +322,20 @@ export class PluginsService {
       versions: undefined,
     });
 
-    return {
+    const result = {
       hotPlugins: hot.map(mapPlugin),
       newPlugins: newest.map(mapPlugin),
       topPlugins: top.map(mapPlugin),
       featuredPlugins: featured.map(mapPlugin),
     };
+
+    try {
+      await connection.set("cache:home", JSON.stringify(result), "EX", 60);
+    } catch (e) {
+      console.error("Redis cache set error:", e);
+    }
+
+    return result;
   }
 
   async getGlobalStats() {
@@ -365,6 +380,7 @@ export class PluginsService {
         status: true,
         author: {
           select: {
+            id: true,
             username: true,
             displayName: true,
             avatarUrl: true,
@@ -554,7 +570,7 @@ export class PluginsService {
       },
       include: {
         author: {
-          select: { username: true, displayName: true, avatarUrl: true },
+          select: { id: true, username: true, displayName: true, avatarUrl: true },
         },
       },
     });
@@ -603,7 +619,7 @@ export class PluginsService {
         },
         include: {
           author: {
-            select: { username: true, displayName: true, avatarUrl: true },
+            select: { id: true, username: true, displayName: true, avatarUrl: true },
           },
         },
       });

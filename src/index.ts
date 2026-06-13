@@ -11,6 +11,11 @@ import helmet from "helmet";
 import morgan from "morgan";
 import zlib from "zlib";
 import { publicRateLimit } from "./middleware/rateLimit";
+import { apolloServer } from "./graphql";
+import { optionalAuth, AuthRequest } from "./middleware/auth";
+import DataLoader from "dataloader";
+import { prisma } from "@endgit/database";
+import { expressMiddleware } from "@as-integrations/express4";
 import { pluginsRouter } from "./modules/plugins/plugins.routes";
 import { versionsRouter } from "./modules/versions/versions.routes";
 import { downloadRouter } from "./modules/download/download.routes";
@@ -66,7 +71,9 @@ app.use(
     crossOriginEmbedderPolicy: false,
   }),
 );
-app.use(publicRateLimit);
+if (process.env.NODE_ENV !== "development" && process.env.NODE_ENV !== "test") {
+  app.use(publicRateLimit);
+}
 app.use(
   cors({
     origin: [
@@ -118,48 +125,104 @@ app.use("/api/v1/submit", submitRouter);
 app.use("/api/v1/webhooks", webhookRouter);
 app.use("/api/v1/builds", callbackRouter); // GitHub Actions artifact callbacks
 
-// ── Error Handler ────────────────────────────────────────
 
-app.use(
-  (
-    err: any,
-    _req: express.Request,
-    res: express.Response,
-    _next: express.NextFunction,
-  ) => {
-    console.error("Error:", err.message);
-    res.status(err.status || 500).json({
-      success: false,
-      error: err.message || "Internal Server Error",
-    });
-  },
-);
-
-// ── 404 Handler ──────────────────────────────────────────
-
-app.use((_req, res) => {
-  res.status(404).json({
-    success: false,
-    error: "Not Found",
-  });
-});
 
 // ── Start ────────────────────────────────────────────────
 
 import { recalculateAllHeatScores } from "./modules/comments/comments.service";
 
-app.listen(PORT, () => {
-  console.log(`
-  ╔═══════════════════════════════════════════════════╗
-  ║                                                   ║
-  ║   EndGit API Server                               ║
-  ║   Running on http://localhost:${PORT}             ║
-  ║                                                   ║
-  ╚═══════════════════════════════════════════════════╝
-  `);
+const createUserLoader = () => new DataLoader(async (userIds: readonly string[]) => {
+  const users = await prisma.user.findMany({ where: { id: { in: userIds as string[] } } });
+  const userMap = new Map(users.map(u => [u.id, u]));
+  return userIds.map(id => userMap.get(id) || null);
+});
 
-  recalculateAllHeatScores().catch(() => {});
-  setInterval(() => recalculateAllHeatScores().catch(() => {}), 60 * 60 * 1000);
+const createVersionLoader = () => new DataLoader(async (pluginIds: readonly string[]) => {
+  const versions = await prisma.version.findMany({ 
+    where: { pluginId: { in: pluginIds as string[] } },
+    orderBy: { createdAt: "desc" }
+  });
+  const map = new Map<string, any[]>();
+  versions.forEach(v => {
+    if (!map.has(v.pluginId)) map.set(v.pluginId, []);
+    map.get(v.pluginId)!.push({
+        ...v,
+        virustotal: {
+          scanId: v.vtScanId,
+          status: v.vtStatus,
+          malicious: v.vtMalicious,
+          suspicious: v.vtSuspicious,
+          undetected: v.vtUndetected,
+          total: v.vtTotal,
+          permalink: v.vtPermalink,
+          scanDate: v.vtScanDate,
+        }
+    });
+  });
+  return pluginIds.map(id => map.get(id) || []);
+});
+
+async function startServer() {
+  await apolloServer.start();
+  app.use(
+    "/api/graphql",
+    optionalAuth,
+    expressMiddleware(apolloServer, {
+      context: async ({ req }: { req: any }) => {
+        return { 
+          user: (req as AuthRequest).user,
+          loaders: {
+            userLoader: createUserLoader(),
+            versionLoader: createVersionLoader()
+          }
+        };
+      },
+    })
+  );
+
+  // ── Error Handler ────────────────────────────────────────
+  app.use(
+    (
+      err: any,
+      _req: express.Request,
+      res: express.Response,
+      _next: express.NextFunction,
+    ) => {
+      console.error("Error:", err.message);
+      res.status(err.status || 500).json({
+        success: false,
+        error: err.message || "Internal Server Error",
+      });
+    },
+  );
+
+  // ── 404 Handler ──────────────────────────────────────────
+  app.use((_req, res) => {
+    res.status(404).json({
+      success: false,
+      error: "Not Found",
+    });
+  });
+
+  app.listen(PORT, () => {
+    console.log(`
+    ╔═══════════════════════════════════════════════════╗
+    ║                                                   ║
+    ║   EndGit API Server                               ║
+    ║   Running on http://localhost:${PORT}             ║
+    ║   GraphQL on http://localhost:${PORT}/api/graphql ║
+    ║                                                   ║
+    ╚═══════════════════════════════════════════════════╝
+    `);
+
+    recalculateAllHeatScores().catch(() => {});
+    setInterval(() => recalculateAllHeatScores().catch(() => {}), 60 * 60 * 1000);
+  });
+}
+
+startServer().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
 });
 
 export default app;

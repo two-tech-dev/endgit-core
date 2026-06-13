@@ -13,6 +13,12 @@
       "skillPath": "skills/find-skills/SKILL.md",
       "computedHash": "9e1c8b3103f92fa8092568a44fe64858de7c5c9dc65ce4bea8f168080e889cfd"
     },
+    "graphql-schema": {
+      "source": "apollographql/skills",
+      "sourceType": "github",
+      "skillPath": "skills/graphql-schema/SKILL.md",
+      "computedHash": "95f5384cc907635fc31121648dffffed0bb6f773ee594cbfe9be9e5e4a0e6aba"
+    },
     "prisma-client-api": {
       "source": "prisma/skills",
       "sourceType": "github",
