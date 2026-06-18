@@ -86,7 +86,7 @@ export class PluginsService {
           pluginType: true,
           downloads: true,
           commentCount: true,
-          heatScore: true,
+          stars: true, heatScore: true,
           isFeatured: true,
           createdAt: true,
           author: {
@@ -171,7 +171,7 @@ export class PluginsService {
         pluginType: true,
         downloads: true,
         commentCount: true,
-        heatScore: true,
+        stars: true, heatScore: true,
         isFeatured: true,
         createdAt: true,
         author: {
@@ -220,7 +220,7 @@ export class PluginsService {
           pluginType: true,
           downloads: true,
           commentCount: true,
-          heatScore: true,
+          stars: true, heatScore: true,
           isFeatured: true,
           createdAt: true,
           author: {
@@ -271,7 +271,7 @@ export class PluginsService {
       pluginType: true,
       downloads: true,
       commentCount: true,
-      heatScore: true,
+      stars: true, heatScore: true,
       isFeatured: true,
       createdAt: true,
       author: {
@@ -370,7 +370,7 @@ export class PluginsService {
         pluginType: true,
         downloads: true,
         commentCount: true,
-        heatScore: true,
+        stars: true, heatScore: true,
         isFeatured: true,
         qualityBadge: true,
         createdAt: true,
