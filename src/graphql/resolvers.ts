@@ -4,7 +4,10 @@ import { pluginsService } from "../modules/plugins/plugins.service";
 
 export const resolvers = {
   Query: {
-    plugins: async (_: any, args: { limit: number; offset: number; status?: string }) => {
+    plugins: async (
+      _: any,
+      args: { limit: number; offset: number; status?: string },
+    ) => {
       return prisma.plugin.findMany({
         where: args.status ? { status: args.status as any } : undefined,
         take: args.limit,
@@ -33,7 +36,7 @@ export const resolvers = {
     dashboardStatus: async (_: any, __: any, context: any) => {
       if (!context.user) throw new Error("Unauthorized");
       return dashboardService.getStatus(context.user.id);
-    }
+    },
   },
   Mutation: {
     createPlugin: async (_: any, { input }: any, context: any) => {
@@ -49,10 +52,18 @@ export const resolvers = {
       await pluginsService.deletePlugin(slug, context.user);
       return true;
     },
-    triggerBuild: async (_: any, { slug, commitHash, branch }: any, context: any) => {
+    triggerBuild: async (
+      _: any,
+      { slug, commitHash, branch }: any,
+      context: any,
+    ) => {
       if (!context.user) throw new Error("Unauthorized");
-      return pluginsService.triggerBuild(slug, { commitHash, branch }, context.user);
-    }
+      return pluginsService.triggerBuild(
+        slug,
+        { commitHash, branch },
+        context.user,
+      );
+    },
   },
   Plugin: {
     author: async (parent: any, _: any, context: any) => {

@@ -140,7 +140,11 @@ export class PluginsController {
       );
       res.json({ success: true, data });
     } catch (error: any) {
-      const status = error.message === "Plugin not found" || error.message === "Version not found" ? 404 : 500;
+      const status =
+        error.message === "Plugin not found" ||
+        error.message === "Version not found"
+          ? 404
+          : 500;
       res.status(status).json({
         success: false,
         error: error.message || "Failed to get version description",

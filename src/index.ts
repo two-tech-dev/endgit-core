@@ -125,27 +125,29 @@ app.use("/api/v1/submit", submitRouter);
 app.use("/api/v1/webhooks", webhookRouter);
 app.use("/api/v1/builds", callbackRouter); // GitHub Actions artifact callbacks
 
-
-
 // ── Start ────────────────────────────────────────────────
 
 import { recalculateAllHeatScores } from "./modules/comments/comments.service";
 
-const createUserLoader = () => new DataLoader(async (userIds: readonly string[]) => {
-  const users = await prisma.user.findMany({ where: { id: { in: userIds as string[] } } });
-  const userMap = new Map(users.map(u => [u.id, u]));
-  return userIds.map(id => userMap.get(id) || null);
-});
-
-const createVersionLoader = () => new DataLoader(async (pluginIds: readonly string[]) => {
-  const versions = await prisma.version.findMany({ 
-    where: { pluginId: { in: pluginIds as string[] } },
-    orderBy: { createdAt: "desc" }
+const createUserLoader = () =>
+  new DataLoader(async (userIds: readonly string[]) => {
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds as string[] } },
+    });
+    const userMap = new Map(users.map((u) => [u.id, u]));
+    return userIds.map((id) => userMap.get(id) || null);
   });
-  const map = new Map<string, any[]>();
-  versions.forEach(v => {
-    if (!map.has(v.pluginId)) map.set(v.pluginId, []);
-    map.get(v.pluginId)!.push({
+
+const createVersionLoader = () =>
+  new DataLoader(async (pluginIds: readonly string[]) => {
+    const versions = await prisma.version.findMany({
+      where: { pluginId: { in: pluginIds as string[] } },
+      orderBy: { createdAt: "desc" },
+    });
+    const map = new Map<string, any[]>();
+    versions.forEach((v) => {
+      if (!map.has(v.pluginId)) map.set(v.pluginId, []);
+      map.get(v.pluginId)!.push({
         ...v,
         virustotal: {
           scanId: v.vtScanId,
@@ -156,11 +158,11 @@ const createVersionLoader = () => new DataLoader(async (pluginIds: readonly stri
           total: v.vtTotal,
           permalink: v.vtPermalink,
           scanDate: v.vtScanDate,
-        }
+        },
+      });
     });
+    return pluginIds.map((id) => map.get(id) || []);
   });
-  return pluginIds.map(id => map.get(id) || []);
-});
 
 async function startServer() {
   await apolloServer.start();
@@ -169,15 +171,15 @@ async function startServer() {
     optionalAuth,
     expressMiddleware(apolloServer, {
       context: async ({ req }: { req: any }) => {
-        return { 
+        return {
           user: (req as AuthRequest).user,
           loaders: {
             userLoader: createUserLoader(),
-            versionLoader: createVersionLoader()
-          }
+            versionLoader: createVersionLoader(),
+          },
         };
       },
-    })
+    }),
   );
 
   // ── Error Handler ────────────────────────────────────────
@@ -216,7 +218,10 @@ async function startServer() {
     `);
 
     recalculateAllHeatScores().catch(() => {});
-    setInterval(() => recalculateAllHeatScores().catch(() => {}), 60 * 60 * 1000);
+    setInterval(
+      () => recalculateAllHeatScores().catch(() => {}),
+      60 * 60 * 1000,
+    );
   });
 }
 

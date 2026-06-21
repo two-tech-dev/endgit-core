@@ -41,7 +41,7 @@ export class GithubController {
           perPage,
           org,
           search,
-          filter
+          filter,
         );
 
       const payload = {

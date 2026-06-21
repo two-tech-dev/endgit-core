@@ -12,7 +12,10 @@ pluginsRouter.get("/latest", pluginsController.getLatest);
 pluginsRouter.get("/stats/global", pluginsController.getGlobalStats);
 pluginsRouter.get("/:slug/analytics", pluginsController.getAnalytics);
 pluginsRouter.get("/:slug/dependencies", pluginsController.getDependencies);
-pluginsRouter.get("/:slug/versions/:version/description", pluginsController.getVersionDescription);
+pluginsRouter.get(
+  "/:slug/versions/:version/description",
+  pluginsController.getVersionDescription,
+);
 pluginsRouter.get("/:slug", optionalAuth, pluginsController.getBySlug);
 
 pluginsRouter.post("/", requireAuth, pluginsController.createPlugin);

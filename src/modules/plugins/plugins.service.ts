@@ -86,11 +86,17 @@ export class PluginsService {
           pluginType: true,
           downloads: true,
           commentCount: true,
-          stars: true, heatScore: true,
+          stars: true,
+          heatScore: true,
           isFeatured: true,
           createdAt: true,
           author: {
-            select: { id: true, username: true, displayName: true, avatarUrl: true },
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+            },
           },
           versions: {
             where: { status: "APPROVED" },
@@ -105,7 +111,10 @@ export class PluginsService {
 
     const data = plugins.map((p: any) => ({
       ...p,
-      description: p.description?.length > 200 ? p.description.slice(0, 200) + '...' : p.description,
+      description:
+        p.description?.length > 200
+          ? p.description.slice(0, 200) + "..."
+          : p.description,
       latestVersion: p.versions[0]?.version || null,
       isPreRelease: p.versions[0]?.isPreRelease || false,
       versions: undefined,
@@ -171,11 +180,17 @@ export class PluginsService {
         pluginType: true,
         downloads: true,
         commentCount: true,
-        stars: true, heatScore: true,
+        stars: true,
+        heatScore: true,
         isFeatured: true,
         createdAt: true,
         author: {
-          select: { id: true, username: true, displayName: true, avatarUrl: true },
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+          },
         },
         versions: {
           where: { status: "APPROVED" },
@@ -188,7 +203,10 @@ export class PluginsService {
 
     return plugins.map((p: any) => ({
       ...p,
-      description: p.description?.length > 200 ? p.description.slice(0, 200) + '...' : p.description,
+      description:
+        p.description?.length > 200
+          ? p.description.slice(0, 200) + "..."
+          : p.description,
       latestVersion: p.versions[0]?.version || null,
       isPreRelease: p.versions[0]?.isPreRelease || false,
       versions: undefined,
@@ -220,11 +238,17 @@ export class PluginsService {
           pluginType: true,
           downloads: true,
           commentCount: true,
-          stars: true, heatScore: true,
+          stars: true,
+          heatScore: true,
           isFeatured: true,
           createdAt: true,
           author: {
-            select: { id: true, username: true, displayName: true, avatarUrl: true },
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+            },
           },
           versions: {
             where: { status: "APPROVED" },
@@ -240,7 +264,10 @@ export class PluginsService {
     return {
       plugins: plugins.map((p: any) => ({
         ...p,
-        description: p.description?.length > 200 ? p.description.slice(0, 200) + '...' : p.description,
+        description:
+          p.description?.length > 200
+            ? p.description.slice(0, 200) + "..."
+            : p.description,
         latestVersion: p.versions[0]?.version || null,
         isPreRelease: p.versions[0]?.isPreRelease || false,
         versions: undefined,
@@ -271,11 +298,17 @@ export class PluginsService {
       pluginType: true,
       downloads: true,
       commentCount: true,
-      stars: true, heatScore: true,
+      stars: true,
+      heatScore: true,
       isFeatured: true,
       createdAt: true,
       author: {
-        select: { id: true, username: true, displayName: true, avatarUrl: true },
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+        },
       },
       versions: {
         where: { status: "APPROVED" as const },
@@ -316,7 +349,10 @@ export class PluginsService {
 
     const mapPlugin = (p: any) => ({
       ...p,
-      description: p.description?.length > 200 ? p.description.slice(0, 200) + '...' : p.description,
+      description:
+        p.description?.length > 200
+          ? p.description.slice(0, 200) + "..."
+          : p.description,
       latestVersion: p.versions[0]?.version || null,
       isPreRelease: p.versions[0]?.isPreRelease || false,
       versions: undefined,
@@ -370,7 +406,8 @@ export class PluginsService {
         pluginType: true,
         downloads: true,
         commentCount: true,
-        stars: true, heatScore: true,
+        stars: true,
+        heatScore: true,
         isFeatured: true,
         qualityBadge: true,
         createdAt: true,
@@ -488,7 +525,7 @@ export class PluginsService {
     });
 
     // Strip internal fields from response
-    const { authorId, status, ...pluginData } = plugin;
+    const { authorId, ...pluginData } = plugin;
 
     return {
       ...pluginData,
@@ -570,7 +607,12 @@ export class PluginsService {
       },
       include: {
         author: {
-          select: { id: true, username: true, displayName: true, avatarUrl: true },
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+          },
         },
       },
     });
@@ -619,7 +661,12 @@ export class PluginsService {
         },
         include: {
           author: {
-            select: { id: true, username: true, displayName: true, avatarUrl: true },
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+            },
           },
         },
       });
