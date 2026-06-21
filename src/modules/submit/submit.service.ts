@@ -29,6 +29,7 @@ export class SubmitService {
             iconUrl: true,
             repoUrl: true,
             reviewBuildId: true,
+            isProprietary: true,
             author: { select: { username: true } },
           },
         },
@@ -122,13 +123,15 @@ export class SubmitService {
     for (const p of producers) {
       const username = p.githubUser.trim();
       if (!username) continue;
-      try {
-        const ghRes = await fetch(`https://api.github.com/users/${username}`);
-        if (!ghRes.ok && ghRes.status === 404) {
-          throw new Error(`GitHub user '${username}' does not exist.`);
+      if (!build.plugin.isProprietary) {
+        try {
+          const ghRes = await fetch(`https://api.github.com/users/${username}`);
+          if (!ghRes.ok && ghRes.status === 404) {
+            throw new Error(`GitHub user '${username}' does not exist.`);
+          }
+        } catch (err: any) {
+          if (err.message.includes("does not exist")) throw err;
         }
-      } catch (err: any) {
-        if (err.message.includes("does not exist")) throw err;
       }
     }
 
@@ -157,6 +160,10 @@ export class SubmitService {
       const path = iconPath ? iconPath.replace(/^\//, "") : "icon.png";
       iconUrl = `https://raw.githubusercontent.com/${repoPath}/${commit}/${path}`;
     }
+
+    const effectiveLicense = build.plugin.isProprietary
+      ? "Proprietary"
+      : license || "";
 
     let vtVersionId: string | null = null;
     let vtVersionFileUrl: string | null = null;
@@ -216,7 +223,7 @@ export class SubmitService {
             longDescription: longDescription || "",
             tags: processedTags,
             keywords: processedKeywords,
-            license: license || "",
+            license: effectiveLicense,
             iconUrl,
           },
         });

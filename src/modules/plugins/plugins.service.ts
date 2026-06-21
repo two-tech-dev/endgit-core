@@ -633,8 +633,14 @@ export class PluginsService {
     if (!plugin) throw new Error("Plugin not found");
     if (plugin.authorId !== user.id && user.trustLevel !== "ADMIN")
       throw new Error("Not authorized");
-    if (!plugin.repoUrl)
+    if (!plugin.repoUrl) {
+      if ((plugin as any).isProprietary) {
+        throw new Error(
+          "Proprietary plugins cannot trigger CI builds. Upload a new artifact instead.",
+        );
+      }
       throw new Error("Repository URL is required to trigger a build");
+    }
 
     const { commitHash, branch } = data;
 

@@ -26,6 +26,7 @@ import { commentsRouter } from "./modules/comments/comments.routes";
 import { submitRouter } from "./modules/submit/submit.routes";
 import { webhookRouter } from "./modules/webhooks/webhooks.routes";
 import { callbackRouter } from "./modules/callback/callback.routes";
+import { uploadRouter } from "./modules/upload/upload.routes";
 
 const app: express.Express = express();
 app.set("trust proxy", 1);
@@ -117,6 +118,7 @@ app.use("/api/v1/comments", commentsRouter);
 app.use("/api/v1/submit", submitRouter);
 app.use("/api/v1/webhooks", webhookRouter);
 app.use("/api/v1/builds", callbackRouter); // GitHub Actions artifact callbacks
+app.use("/api/v1/upload", uploadRouter);
 
 // ── Error Handler ────────────────────────────────────────
 
