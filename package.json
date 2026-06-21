@@ -34,7 +34,7 @@
     "@endgit/types": "workspace:*",
     "bcryptjs": "^2.4.3",
     "body-parser": "^2.2.2",
-    "bullmq": "^5.76.2",
+    "bullmq": "^5.79.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dataloader": "^2.2.3",
