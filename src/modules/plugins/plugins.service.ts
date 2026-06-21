@@ -84,11 +84,17 @@ export class PluginsService {
           repoUrl: true,
           downloads: true,
           commentCount: true,
+          stars: true,
           heatScore: true,
           isFeatured: true,
           createdAt: true,
           author: {
-            select: { username: true, displayName: true },
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+            },
           },
           versions: {
             where: { status: "APPROVED" },
@@ -103,7 +109,10 @@ export class PluginsService {
 
     const data = plugins.map((p: any) => ({
       ...p,
-      description: p.description?.length > 200 ? p.description.slice(0, 200) + '...' : p.description,
+      description:
+        p.description?.length > 200
+          ? p.description.slice(0, 200) + "..."
+          : p.description,
       latestVersion: p.versions[0]?.version || null,
       isPreRelease: p.versions[0]?.isPreRelease || false,
       versions: undefined,
@@ -167,11 +176,17 @@ export class PluginsService {
         repoUrl: true,
         downloads: true,
         commentCount: true,
+        stars: true,
         heatScore: true,
         isFeatured: true,
         createdAt: true,
         author: {
-          select: { username: true, displayName: true },
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+          },
         },
         versions: {
           where: { status: "APPROVED" },
@@ -184,7 +199,10 @@ export class PluginsService {
 
     return plugins.map((p: any) => ({
       ...p,
-      description: p.description?.length > 200 ? p.description.slice(0, 200) + '...' : p.description,
+      description:
+        p.description?.length > 200
+          ? p.description.slice(0, 200) + "..."
+          : p.description,
       latestVersion: p.versions[0]?.version || null,
       isPreRelease: p.versions[0]?.isPreRelease || false,
       versions: undefined,
@@ -214,11 +232,17 @@ export class PluginsService {
           repoUrl: true,
           downloads: true,
           commentCount: true,
+          stars: true,
           heatScore: true,
           isFeatured: true,
           createdAt: true,
           author: {
-            select: { username: true, displayName: true },
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+            },
           },
           versions: {
             where: { status: "APPROVED" },
@@ -234,7 +258,10 @@ export class PluginsService {
     return {
       plugins: plugins.map((p: any) => ({
         ...p,
-        description: p.description?.length > 200 ? p.description.slice(0, 200) + '...' : p.description,
+        description:
+          p.description?.length > 200
+            ? p.description.slice(0, 200) + "..."
+            : p.description,
         latestVersion: p.versions[0]?.version || null,
         isPreRelease: p.versions[0]?.isPreRelease || false,
         versions: undefined,
@@ -247,6 +274,13 @@ export class PluginsService {
   }
 
   async getHome() {
+    try {
+      const cached = await connection.get("cache:home");
+      if (cached) return JSON.parse(cached);
+    } catch (e) {
+      console.error("Redis cache error:", e);
+    }
+
     const cardSelect = {
       id: true,
       slug: true,
@@ -256,11 +290,17 @@ export class PluginsService {
       repoUrl: true,
       downloads: true,
       commentCount: true,
+      stars: true,
       heatScore: true,
       isFeatured: true,
       createdAt: true,
       author: {
-        select: { username: true, displayName: true },
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+        },
       },
       versions: {
         where: { status: "APPROVED" as const },
@@ -301,18 +341,29 @@ export class PluginsService {
 
     const mapPlugin = (p: any) => ({
       ...p,
-      description: p.description?.length > 200 ? p.description.slice(0, 200) + '...' : p.description,
+      description:
+        p.description?.length > 200
+          ? p.description.slice(0, 200) + "..."
+          : p.description,
       latestVersion: p.versions[0]?.version || null,
       isPreRelease: p.versions[0]?.isPreRelease || false,
       versions: undefined,
     });
 
-    return {
+    const result = {
       hotPlugins: hot.map(mapPlugin),
       newPlugins: newest.map(mapPlugin),
       topPlugins: top.map(mapPlugin),
       featuredPlugins: featured.map(mapPlugin),
     };
+
+    try {
+      await connection.set("cache:home", JSON.stringify(result), "EX", 60);
+    } catch (e) {
+      console.error("Redis cache set error:", e);
+    }
+
+    return result;
   }
 
   async getGlobalStats() {
@@ -347,6 +398,7 @@ export class PluginsService {
         pluginType: true,
         downloads: true,
         commentCount: true,
+        stars: true,
         heatScore: true,
         isFeatured: true,
         qualityBadge: true,
@@ -357,6 +409,7 @@ export class PluginsService {
         status: true,
         author: {
           select: {
+            id: true,
             username: true,
             displayName: true,
             avatarUrl: true,
@@ -464,7 +517,7 @@ export class PluginsService {
     });
 
     // Strip internal fields from response
-    const { authorId, status, ...pluginData } = plugin;
+    const { authorId, ...pluginData } = plugin;
 
     return {
       ...pluginData,
@@ -546,7 +599,12 @@ export class PluginsService {
       },
       include: {
         author: {
-          select: { username: true, displayName: true, avatarUrl: true },
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+          },
         },
       },
     });
@@ -595,7 +653,12 @@ export class PluginsService {
         },
         include: {
           author: {
-            select: { username: true, displayName: true, avatarUrl: true },
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+            },
           },
         },
       });

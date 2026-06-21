@@ -144,6 +144,7 @@ export class GithubService {
     perPage: number,
     org?: string,
     search?: string,
+    filter?: string,
   ) {
     const accessToken = await this.getAccessToken(userId);
     if (!accessToken) throw new Error("GitHub account not linked");
@@ -153,74 +154,6 @@ export class GithubService {
       Accept: "application/vnd.github.v3+json",
       "User-Agent": "EndGit-CI",
     };
-
-    let ghRepos: any[];
-    let hasMore = false;
-    let totalCount = 0;
-
-    if (search) {
-      ghRepos = [];
-      let p = 1;
-      while (true) {
-        const url = org
-          ? `https://api.github.com/orgs/${encodeURIComponent(org)}/repos?sort=updated&per_page=100&page=${p}`
-          : `https://api.github.com/user/repos?sort=updated&per_page=100&page=${p}&affiliation=owner,collaborator,organization_member`;
-        const res = await fetch(url, { headers });
-        if (!res.ok) throw new Error("Failed to fetch from GitHub");
-        const batch = (await res.json()) as any[];
-        ghRepos.push(...batch);
-        const linkHeader = res.headers.get("link");
-        if (!linkHeader || !linkHeader.includes('rel="next"')) break;
-        p++;
-      }
-
-      const searchLower = search.toLowerCase();
-      ghRepos = ghRepos.filter((r: any) =>
-        r.full_name.toLowerCase().includes(searchLower),
-      );
-
-      totalCount = ghRepos.length;
-      const start = (page - 1) * perPage;
-      ghRepos = ghRepos.slice(start, start + perPage);
-      hasMore = start + perPage < totalCount;
-    } else {
-      let ghRes: Response;
-
-      if (org) {
-        ghRes = await fetch(
-          `https://api.github.com/orgs/${encodeURIComponent(org)}/repos?sort=updated&per_page=${perPage}&page=${page}`,
-          { headers },
-        );
-      } else {
-        ghRes = await fetch(
-          `https://api.github.com/user/repos?sort=updated&per_page=${perPage}&page=${page}&affiliation=owner,collaborator,organization_member`,
-          { headers },
-        );
-      }
-
-      if (!ghRes.ok) throw new Error("Failed to fetch from GitHub");
-
-      const linkHeader = ghRes.headers.get("link");
-      if (linkHeader && linkHeader.includes('rel="next"')) hasMore = true;
-
-      ghRepos = (await ghRes.json()) as any[];
-
-      if (linkHeader) {
-        const lastMatch = linkHeader.match(
-          /[?&]page=(\d+)[^>]*>;\s*rel="last"/,
-        );
-        if (lastMatch) {
-          const lastPage = parseInt(lastMatch[1], 10);
-          totalCount = lastPage * perPage;
-        }
-      }
-
-      if (!hasMore) {
-        totalCount = (page - 1) * perPage + ghRepos.length;
-      } else if (totalCount === 0) {
-        totalCount = ghRepos.length;
-      }
-    }
 
     const existingPlugins = await prisma.plugin.findMany({
       where: { authorId: userId },
@@ -238,10 +171,86 @@ export class GithubService {
       existingPlugins.map((p: any) => [p.repoUrl, p] as const),
     );
 
-    const repos = ghRepos.map((repo: any) => {
-      const linked = repoUrlMap.get(repo.html_url) as
-        | { webhookId?: string; id?: string; slug?: string; status?: string }
-        | undefined;
+    let ghRepos: any[] = [];
+    let hasMore = false;
+    let totalCount = 0;
+
+    if (filter === "enabled") {
+      const enabled = existingPlugins.filter((p: any) => p.webhookId);
+      totalCount = enabled.length;
+      const start = (page - 1) * perPage;
+      const paginatedEnabled = enabled.slice(start, start + perPage);
+
+      const repoPromises = paginatedEnabled.map(async (p: any) => {
+        const match = p.repoUrl?.match(/github\.com\/([^/]+\/[^/]+)/);
+        if (match) {
+          const repoName = match[1].replace(".git", "");
+          const res = await fetch(`https://api.github.com/repos/${repoName}`, {
+            headers,
+          });
+          if (res.ok) return await res.json();
+        }
+        return null;
+      });
+      const resolved = await Promise.all(repoPromises);
+      ghRepos = resolved.filter((r) => r !== null);
+      hasMore = start + perPage < totalCount;
+    } else if (search) {
+      let q = search;
+      if (org) {
+        q += ` org:${org}`;
+      } else {
+        const account = await prisma.account.findFirst({
+          where: { userId, provider: "github" },
+          include: { user: true },
+        });
+        if (account?.user?.username) {
+          q += ` user:${account.user.username}`;
+        }
+      }
+
+      const res = await fetch(
+        `https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=updated&per_page=${perPage}&page=${page}`,
+        { headers },
+      );
+      if (res.ok) {
+        const data = (await res.json()) as any;
+        ghRepos = data.items || [];
+        totalCount = data.total_count || 0;
+        hasMore = page * perPage < totalCount;
+      }
+    } else {
+      const url = org
+        ? `https://api.github.com/orgs/${encodeURIComponent(org)}/repos?sort=updated&per_page=${perPage}&page=${page}`
+        : `https://api.github.com/user/repos?sort=updated&per_page=${perPage}&page=${page}&affiliation=owner,collaborator,organization_member`;
+
+      const res = await fetch(url, { headers });
+      if (res.ok) {
+        ghRepos = (await res.json()) as any[];
+
+        const linkHeader = res.headers.get("link");
+        if (linkHeader && linkHeader.includes('rel="next"')) hasMore = true;
+
+        if (linkHeader) {
+          const lastMatch = linkHeader.match(
+            /[?&]page=(\d+)[^>]*>;\s*rel="last"/,
+          );
+          if (lastMatch) {
+            const lastPage = parseInt(lastMatch[1], 10);
+            totalCount = lastPage * perPage;
+          }
+        }
+
+        if (!hasMore) {
+          totalCount = (page - 1) * perPage + ghRepos.length;
+        } else if (totalCount === 0) {
+          totalCount = ghRepos.length;
+        }
+      }
+    }
+
+    let repos = ghRepos.map((repo: any) => {
+      const linked = repoUrlMap.get(repo.html_url) as any;
       return {
         id: repo.id,
         name: repo.name,
@@ -252,6 +261,7 @@ export class GithubService {
         private: repo.private,
         defaultBranch: repo.default_branch,
         updatedAt: repo.updated_at,
+        stargazersCount: repo.stargazers_count || 0,
         ciEnabled: !!(linked && linked.webhookId),
         pluginId: linked?.id || null,
         pluginSlug: linked?.slug || null,
@@ -259,8 +269,13 @@ export class GithubService {
       };
     });
 
+    if (filter === "disabled") {
+      repos = repos.filter((r) => !r.ciEnabled);
+    }
+
     const totalEnabled = existingPlugins.filter((p: any) => p.webhookId).length;
-    const totalDisabled = totalCount - totalEnabled;
+    const totalDisabled =
+      totalCount > totalEnabled ? totalCount - totalEnabled : 0;
 
     return { repos, hasMore, totalCount, totalEnabled, totalDisabled };
   }
