@@ -214,7 +214,7 @@ export class GithubService {
         { headers },
       );
       if (res.ok) {
-        const data = await res.json();
+        const data = (await res.json()) as any;
         ghRepos = data.items || [];
         totalCount = data.total_count || 0;
         hasMore = page * perPage < totalCount;
